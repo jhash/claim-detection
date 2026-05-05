@@ -75,3 +75,38 @@ def test_build_view_no_ood_section_when_disk_empty(tmp_path, monkeypatch):
     monkeypatch.setattr("app.results_view.OOD_RESULTS_DIR", tmp_path / "missing")
     view = build_view()
     assert view["ood_sections"] == []
+
+
+def test_build_view_marks_column_bests_in_main_table(tmp_path, monkeypatch):
+    """`*_best` flags drive the bold rendering — exactly one True per
+    metric column."""
+    monkeypatch.setattr("app.results_view.RESULTS_DIR", tmp_path)
+    (tmp_path / "ettin-150m-ft.json").write_text(json.dumps({
+        "slug": "ettin-150m-ft", "accuracy": 0.92, "precision": 0.91, "recall": 0.91, "f1": 0.917,
+    }))
+    (tmp_path / "modernbert-base-ft.json").write_text(json.dumps({
+        "slug": "modernbert-base-ft", "accuracy": 0.917, "precision": 0.92, "recall": 0.91, "f1": 0.916,
+    }))
+    view = build_view()
+    rows = view["ours_sorted"]
+    # F1 best: ettin-150m-ft (0.917)
+    f1_bests = [r for r in rows if r.get("f1_best")]
+    assert len(f1_bests) == 1
+    assert f1_bests[0]["slug"] == "ettin-150m-ft"
+    # Precision best: modernbert-base-ft (0.92)
+    p_bests = [r for r in rows if r.get("precision_best")]
+    assert len(p_bests) == 1
+    assert p_bests[0]["slug"] == "modernbert-base-ft"
+    # Recall ties between the two — both flagged True (max-equality)
+    r_bests = [r for r in rows if r.get("recall_best")]
+    assert len(r_bests) == 2
+
+
+def test_build_view_marks_bell_column_bests():
+    """Bell reference table also gets *_best flags — uses the same helper."""
+    view = build_view()
+    bell = view["bell"]
+    f1_bests = [r for r in bell if r.get("f1_best")]
+    assert len(f1_bests) == 1
+    # Bell's BERT row has the highest F1 (0.916).
+    assert f1_bests[0]["label"].startswith("BERT")

@@ -18,7 +18,7 @@ docker stack ready for both local Compose and remote Swarm.
 ```
 claim-detection/
 ├── README.md                       this file
-├── WORKFLOW.md              ELI5 walk-through for the demo
+├── WALKTHROUGH.md              ELI5 walk-through for the demo
 ├── DOCKER.md                       Docker Compose + Swarm bring-up
 ├── DEPLOY_LINUX.md                 ship Ettin checkpoint to a CPU-only server
 ├── RESOURCES.md                    CPU/RAM/storage usage + scaling guidance
@@ -62,7 +62,7 @@ claim-detection/
 - **Bell, "Less Can be More: Comparing LLMs to Smaller Encoder-Only Models for Claim Detection"** ([FEVER 2025](papers/2025.fever-1.6.pdf)). Headline finding: small fine-tuned encoders (BERT, ModernBERT, RoBERTa) beat fine-tuned LLMs in-domain, by ~5 F1 points. Used a 12,997-sentence composite of ClaimBuster + PoliClaim + AVeriTeC.
 - **Weller et al., "Seq vs Seq: An Open Suite of Paired Encoders and Decoders"** ([ICLR 2026](papers/2507.11412v2.pdf)). Released the Ettin model family — open-data encoders that re-train ModernBERT's recipe and slightly outperform it on GLUE. Most recent comparable open encoder; not yet evaluated for claim detection.
 
-`WORKFLOW.md` has more context on what the papers say and how
+`WALKTHROUGH.md` has more context on what the papers say and how
 that guided model selection.
 
 ---
@@ -107,12 +107,12 @@ Live version at `RESULTS.md`. Final 8-model sweep, sorted by F1:
 - **`confidence`** (returned per-prediction by the API) — softmax
   probability of the predicted class. This is *derived from* the
   model's logits via `torch.softmax(logits)[pred_idx]`, not built into
-  PyTorch — see `WORKFLOW.md` for the exact 4-line code path.
+  PyTorch — see `WALKTHROUGH.md` for the exact 4-line code path.
 
 **F1 is the key metric here** because (1) we want both fewer false
 alarms *and* fewer misses, with no good reason to prefer one, and (2)
 it's the metric Bell uses, so it's the only way to compare head-to-head
-with the paper. `WORKFLOW.md` has the full ELI5 with examples.
+with the paper. `WALKTHROUGH.md` has the full ELI5 with examples.
 
 ### Direct head-to-head with Bell (sanity check on our pipeline)
 
@@ -374,4 +374,4 @@ reference. `python datasets/normalize.py` re-derives the
 - Token-level explanation (attention rollout / SHAP)
 - Bring up Docker stack and run the integration test suite green
 
-See `WORKFLOW.md` for the demo walk-through and likely Q&A.
+See `WALKTHROUGH.md` for the demo walk-through and likely Q&A.

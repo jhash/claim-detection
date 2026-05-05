@@ -15,6 +15,19 @@ RESULTS_DIR = ROOT / "results"
 OOD_RESULTS_DIR = ROOT / "results" / "ood"
 
 
+def _annotate_bests(rows: list[dict], keys: list[str]) -> None:
+    """Mutate each row in-place adding `<key>_best: bool` for cells that
+    hold the column max. Skips rows where the value is None.
+    Bell-paper-style cell highlighting."""
+    for k in keys:
+        vals = [r.get(k) for r in rows if r.get(k) is not None]
+        if not vals:
+            continue
+        best = max(vals)
+        for r in rows:
+            r[f"{k}_best"] = r.get(k) is not None and r[k] == best
+
+
 def build_view() -> dict:
     rows = []
     for spec in MODELS:
@@ -40,11 +53,13 @@ def build_view() -> dict:
         reverse=True,
     )
     pending = [r for r in rows if r["pending"]]
+    _annotate_bests(sorted_rows, ["accuracy", "precision", "recall", "f1"])
 
     bell = [
         {"label": label, "accuracy": a, "precision": p, "recall": r, "f1": f1}
         for (label, a, p, r, f1) in BELL_REFERENCE
     ]
+    _annotate_bests(bell, ["accuracy", "precision", "recall", "f1"])
 
     by_slug = {r["slug"]: r for r in rows if not r["pending"]}
     bell_by_label = {b["label"]: b for b in bell}
@@ -99,6 +114,10 @@ def build_view() -> dict:
                 })
         for ds in ood_by_dataset:
             ood_by_dataset[ds].sort(key=lambda r: r["f1"], reverse=True)
+            _annotate_bests(
+                ood_by_dataset[ds],
+                ["accuracy", "precision", "recall", "f1", "delta"],
+            )
 
     ood_sections = [
         {

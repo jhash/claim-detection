@@ -49,6 +49,23 @@ def fmt(x):
     return f"{x:.4f}" if isinstance(x, float) else str(x)
 
 
+def fmt_best(x: float | None, is_best: bool) -> str:
+    """Bell-paper style: column-best gets bold."""
+    s = fmt(x)
+    return f"**{s}**" if is_best and x is not None else s
+
+
+def column_maxes(rows: list[dict], keys: list[str]) -> dict[str, float]:
+    """Return {key: max_value} across rows. Skips None values. Used to
+    decide which cells to bold."""
+    out = {}
+    for k in keys:
+        vals = [r.get(k) for r in rows if r.get(k) is not None]
+        if vals:
+            out[k] = max(vals)
+    return out
+
+
 def load_results() -> list[dict]:
     if not RESULTS_DIR.exists():
         return []
@@ -78,30 +95,45 @@ def load_ood_results() -> list[dict]:
 def section_our_results(results: list[dict]) -> str:
     if not results:
         return "_No results yet — run `python -m src.evaluate` first._\n"
-    rows = sorted(results, key=lambda d: d.get("f1", -1), reverse=True)
+    rows = [r for r in results if "error" not in r]
+    rows.sort(key=lambda d: d.get("f1", -1), reverse=True)
+    bests = column_maxes(rows, ["accuracy", "precision", "recall", "f1"])
+    note = "_Bold marks the best value in each metric column._\n\n"
     lines = [
         "| Rank | Model (slug) | Mode | HF id | Accuracy | Precision | Recall | F1 |",
         "|---:|---|---|---|---:|---:|---:|---:|",
     ]
     for i, r in enumerate(rows, 1):
-        if "error" in r:
-            continue
         spec = r["spec"]
         mode = "fine-tuned" if spec.finetune else "frozen probe"
         lines.append(
             f"| {i} | `{spec.slug}` | {mode} | `{spec.hf_id}` "
-            f"| {fmt(r['accuracy'])} | {fmt(r['precision'])} | {fmt(r['recall'])} | **{fmt(r['f1'])}** |"
+            f"| {fmt_best(r['accuracy'], r['accuracy'] == bests.get('accuracy'))} "
+            f"| {fmt_best(r['precision'], r['precision'] == bests.get('precision'))} "
+            f"| {fmt_best(r['recall'], r['recall'] == bests.get('recall'))} "
+            f"| {fmt_best(r['f1'], r['f1'] == bests.get('f1'))} |"
         )
-    return "\n".join(lines) + "\n"
+    return note + "\n".join(lines) + "\n"
 
 
 def section_bell_reference() -> str:
+    rows = [
+        {"label": label, "accuracy": a, "precision": p, "recall": r, "f1": f1}
+        for label, a, p, r, f1 in BELL_REFERENCE
+    ]
+    bests = column_maxes(rows, ["accuracy", "precision", "recall", "f1"])
     lines = [
         "| Bell row | Accuracy | Precision | Recall | F1 |",
         "|---|---:|---:|---:|---:|",
     ]
-    for label, a, p, r, f1 in BELL_REFERENCE:
-        lines.append(f"| {label} | {fmt(a)} | {fmt(p)} | {fmt(r)} | {fmt(f1)} |")
+    for r in rows:
+        lines.append(
+            f"| {r['label']} "
+            f"| {fmt_best(r['accuracy'], r['accuracy'] == bests.get('accuracy'))} "
+            f"| {fmt_best(r['precision'], r['precision'] == bests.get('precision'))} "
+            f"| {fmt_best(r['recall'], r['recall'] == bests.get('recall'))} "
+            f"| {fmt_best(r['f1'], r['f1'] == bests.get('f1'))} |"
+        )
     return "\n".join(lines) + "\n"
 
 
@@ -157,27 +189,47 @@ def section_ood(ood_rows: list[dict], in_domain: list[dict]) -> str:
                 continue
             in_f1 = (in_by_slug.get(spec.slug) or {}).get("f1")
             drop = (payload["f1"] - in_f1) if in_f1 is not None else None
-            rows_for_ds.append((spec, payload, in_f1, drop))
-        rows_for_ds.sort(key=lambda x: x[1]["f1"], reverse=True)
+            rows_for_ds.append({
+                "spec": spec,
+                "accuracy": payload["accuracy"],
+                "precision": payload["precision"],
+                "recall": payload["recall"],
+                "f1": payload["f1"],
+                "n": payload.get("n"),
+                "in_f1": in_f1,
+                "drop": drop,
+            })
+        rows_for_ds.sort(key=lambda r: r["f1"], reverse=True)
 
-        n_test = rows_for_ds[0][1]["n"] if rows_for_ds else "?"
+        bests = column_maxes(rows_for_ds, ["accuracy", "precision", "recall", "f1"])
+        # For "Δ vs in-domain" highest is best (least negative or most positive).
+        if any(r["drop"] is not None for r in rows_for_ds):
+            bests["drop"] = max(r["drop"] for r in rows_for_ds if r["drop"] is not None)
+
+        n_test = rows_for_ds[0]["n"] if rows_for_ds else "?"
         lines = [
             f"### `{dataset}` ({n_test} sentences)",
             "",
             "| Rank | Model | Mode | OOD Acc | OOD P | OOD R | OOD F1 | In-domain F1 | Δ vs in-domain |",
             "|---:|---|---|---:|---:|---:|---:|---:|---:|",
         ]
-        for i, (spec, p, in_f1, drop) in enumerate(rows_for_ds, 1):
+        for i, r in enumerate(rows_for_ds, 1):
+            spec = r["spec"]
             mode = "fine-tuned" if spec.finetune else "frozen probe"
-            in_f1_str = fmt(in_f1) if in_f1 is not None else "—"
-            if drop is None:
+            in_f1_str = fmt(r["in_f1"]) if r["in_f1"] is not None else "—"
+            if r["drop"] is None:
                 drop_str = "—"
             else:
-                sign = "+" if drop >= 0 else ""
-                drop_str = f"{sign}{drop:.4f}"
+                sign = "+" if r["drop"] >= 0 else ""
+                drop_str = f"{sign}{r['drop']:.4f}"
+                if r["drop"] == bests.get("drop"):
+                    drop_str = f"**{drop_str}**"
             lines.append(
                 f"| {i} | `{spec.slug}` | {mode} "
-                f"| {fmt(p['accuracy'])} | {fmt(p['precision'])} | {fmt(p['recall'])} | **{fmt(p['f1'])}** "
+                f"| {fmt_best(r['accuracy'], r['accuracy'] == bests.get('accuracy'))} "
+                f"| {fmt_best(r['precision'], r['precision'] == bests.get('precision'))} "
+                f"| {fmt_best(r['recall'], r['recall'] == bests.get('recall'))} "
+                f"| {fmt_best(r['f1'], r['f1'] == bests.get('f1'))} "
                 f"| {in_f1_str} | {drop_str} |"
             )
         sections.append("\n".join(lines))

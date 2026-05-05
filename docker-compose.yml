@@ -1,9 +1,18 @@
-# Local + Swarm-compatible compose. Stick to v3 syntax that works with both
-# `docker compose up` (local) and `docker stack deploy` (Swarm).
+# Compose file used in two modes:
+#
+#   * Local dev:    docker compose up --build
+#                   (uses :latest, single replica, no Swarm orchestration)
+#
+#   * Swarm:        scripts/deploy_swarm.sh
+#                   (builds an immutable :<git-sha> tag, scales api to 2,
+#                    rolling start-first updates with auto-rollback)
+#
+# Stick to compose v3 syntax that works with both `docker compose up` and
+# `docker stack deploy`. No `depends_on.condition` (Swarm ignores it).
 
 services:
   api:
-    image: claim-detection:latest
+    image: claim-detection:${TAG:-latest}
     build:
       context: .
       dockerfile: docker/Dockerfile
@@ -20,17 +29,38 @@ services:
     ports:
       - "8000:8000"
     deploy:
-      replicas: 1
+      replicas: ${API_REPLICAS:-1}
+      update_config:
+        # Roll one task at a time. With API_REPLICAS=2, this means a
+        # NEW task starts on the new image, becomes healthy, then the
+        # OLD task on the previous image shuts down. Zero downtime.
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        # If the new task isn't healthy within `monitor:`, abort and
+        # auto-rollback to the previous image.
+        failure_action: rollback
+        monitor: 30s
+        max_failure_ratio: 0
+      rollback_config:
+        parallelism: 1
+        delay: 5s
+        order: start-first
+        failure_action: pause
       restart_policy:
         condition: on-failure
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/healthz"]
-      interval: 30s
-      timeout: 5s
+      # Hits the canonical endpoint (the legacy /healthz redirects to
+      # /api/healthz; curl without -L still 308-passes but this is
+      # explicit). 30s start_period gives the model a chance to load.
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/api/healthz"]
+      interval: 10s
+      timeout: 3s
       retries: 3
+      start_period: 30s
 
   worker:
-    image: claim-detection:latest
+    image: claim-detection:${TAG:-latest}
     build:
       context: .
       dockerfile: docker/Dockerfile
@@ -46,7 +76,23 @@ services:
     volumes:
       - ./runs/ettin-150m-ft/final:/model:ro
     deploy:
-      replicas: 1
+      replicas: ${WORKER_REPLICAS:-1}
+      update_config:
+        # Worker rolls are also start-first so an in-flight job has a
+        # worker to land on at all times. Even with 1 replica, a brief
+        # double-up during the roll is fine — RQ jobs are idempotent
+        # (BLPOP gives each job to exactly one worker).
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+        monitor: 30s
+        max_failure_ratio: 0
+      rollback_config:
+        parallelism: 1
+        delay: 5s
+        order: start-first
+        failure_action: pause
       restart_policy:
         condition: on-failure
 
@@ -55,5 +101,11 @@ services:
     command: ["redis-server", "--save", "", "--appendonly", "no"]
     deploy:
       replicas: 1
+      # Redis is stateful (queue + result store). Don't roll it on
+      # every release — only when the redis image itself changes.
+      update_config:
+        order: stop-first
+        failure_action: rollback
+        monitor: 15s
       restart_policy:
         condition: on-failure

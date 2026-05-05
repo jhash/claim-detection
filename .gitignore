@@ -54,6 +54,7 @@ ipython_config.py
 wandb/
 mlruns/
 runs/
+!runs/.gitkeep
 checkpoints/
 *.ckpt
 *.pt

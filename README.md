@@ -19,6 +19,8 @@ docker stack ready for both local Compose and remote Swarm.
 claim-detection/
 ├── README.md                       this file
 ├── WALKTHROUGH.md              ELI5 walk-through for the demo
+├── ARCHITECTURE.md                 system design diagrams (Mermaid + Excalidraw)
+├── architecture.excalidraw         editable diagram (excalidraw.com or VS Code ext)
 ├── DOCKER.md                       Docker Compose + Swarm bring-up
 ├── DEPLOY_LINUX.md                 ship Ettin checkpoint to a CPU-only server
 ├── RESOURCES.md                    CPU/RAM/storage usage + scaling guidance

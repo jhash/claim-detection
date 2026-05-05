@@ -42,3 +42,20 @@ def test_each_finetune_has_a_pretrained_sibling():
         by_hf.setdefault(m.hf_id, set()).add(m.finetune)
     for hf, modes in by_hf.items():
         assert modes == {True, False}, f"{hf} missing one of finetune/pretrained"
+
+
+def test_combined_v1_ettin_uses_combined_data_dir():
+    """The second Ettin slug points the pipeline at combined-v1."""
+    spec = get("ettin-150m-ft-combined")
+    assert spec.hf_id == "jhu-clsp/ettin-encoder-150m"
+    assert spec.finetune is True
+    assert spec.data_dir == "datasets/combined-v1"
+
+
+def test_other_models_use_default_data_dir():
+    """All non-combined models leave data_dir unset (None) so the
+    pipeline falls back to verita-composite/ours."""
+    for spec in MODELS:
+        if spec.slug == "ettin-150m-ft-combined":
+            continue
+        assert spec.data_dir is None, f"{spec.slug} unexpectedly overrides data_dir"

@@ -36,8 +36,15 @@ from transformers import (
 from src.models import MODELS, ModelSpec, get
 
 ROOT = Path(__file__).resolve().parent.parent
-DATA_DIR = ROOT / "datasets" / "verita-composite" / "ours"
+DEFAULT_DATA_DIR = ROOT / "datasets" / "verita-composite" / "ours"
 RUNS_DIR = ROOT / "runs"
+
+
+def data_dir_for(spec: ModelSpec) -> Path:
+    """Per-model data dir override. Falls back to verita-composite/ours/."""
+    if spec.data_dir:
+        return ROOT / spec.data_dir
+    return DEFAULT_DATA_DIR
 
 
 def pick_device() -> str:
@@ -48,8 +55,9 @@ def pick_device() -> str:
     return "cpu"
 
 
-def load_splits(max_train_rows: int | None, max_eval_rows: int | None):
-    files = {"train": str(DATA_DIR / "train.csv"), "test": str(DATA_DIR / "test.csv")}
+def load_splits(max_train_rows: int | None, max_eval_rows: int | None, data_dir: Path | None = None):
+    data_dir = data_dir or DEFAULT_DATA_DIR
+    files = {"train": str(data_dir / "train.csv"), "test": str(data_dir / "test.csv")}
     ds = load_dataset("csv", data_files=files)
     ds = ds.filter(lambda r: r["text"] is not None and r["label"] in (0, 1))
     if max_train_rows:
@@ -88,7 +96,8 @@ def run_one(spec: ModelSpec, args, device: str) -> dict:
             if not name.startswith("classifier"):
                 p.requires_grad = False
 
-    ds = load_splits(args.max_train_rows, args.max_eval_rows)
+    ds = load_splits(args.max_train_rows, args.max_eval_rows, data_dir_for(spec))
+    print(f"  data_dir: {data_dir_for(spec).relative_to(ROOT)}")
 
     def tokenize(batch):
         return tok(batch["text"], truncation=True, max_length=args.max_length)

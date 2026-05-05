@@ -26,6 +26,10 @@ class ModelSpec:
     hf_id: str
     finetune: bool
     note: str = ""
+    # Override the default training/test split. If None, the pipeline
+    # uses datasets/verita-composite/ours/. Set this for models that
+    # train on a broader corpus (combined-v1 etc.).
+    data_dir: str | None = None
 
 
 MODELS: list[ModelSpec] = [
@@ -41,6 +45,13 @@ MODELS: list[ModelSpec] = [
         hf_id="jhu-clsp/ettin-encoder-150m",
         finetune=True,
         note="Primary candidate. ModernBERT-architecture encoder, post-dates Bell.",
+    ),
+    ModelSpec(
+        slug="ettin-150m-ft-combined",
+        hf_id="jhu-clsp/ettin-encoder-150m",
+        finetune=True,
+        note="Same model fine-tuned on combined-v1 (Verita + Claimify + CheckThat-2025-T1). Tests whether broadening the training distribution generalizes better.",
+        data_dir="datasets/combined-v1",
     ),
     ModelSpec(
         slug="ettin-150m-pretrained",

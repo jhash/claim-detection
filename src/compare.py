@@ -93,21 +93,34 @@ def load_ood_results() -> list[dict]:
 
 
 def section_our_results(results: list[dict]) -> str:
+    """In-domain table.
+
+    NOTE: `f1` for `ettin-150m-ft-combined` is measured on the combined-v1
+    test split (different corpus) — not directly comparable to the other
+    rows whose F1 is on the verita-composite test split. Each row's
+    training corpus is shown so the reader can tell which baseline it's
+    evaluated against."""
     if not results:
         return "_No results yet — run `python -m src.evaluate` first._\n"
     rows = [r for r in results if "error" not in r]
     rows.sort(key=lambda d: d.get("f1", -1), reverse=True)
     bests = column_maxes(rows, ["accuracy", "precision", "recall", "f1"])
-    note = "_Bold marks the best value in each metric column._\n\n"
+    note = (
+        "_Bold marks the best value in each metric column. Each row is "
+        "evaluated on the test split that matches its **training corpus** "
+        "(usually `verita-composite/ours/test.csv`; combined-v1 rows use "
+        "`combined-v1/test.csv`). Compare carefully across corpora._\n\n"
+    )
     lines = [
-        "| Rank | Model (slug) | Mode | HF id | Accuracy | Precision | Recall | F1 |",
-        "|---:|---|---|---|---:|---:|---:|---:|",
+        "| Rank | Model (slug) | Mode | Training corpus | HF id | Accuracy | Precision | Recall | F1 |",
+        "|---:|---|---|---|---|---:|---:|---:|---:|",
     ]
     for i, r in enumerate(rows, 1):
         spec = r["spec"]
         mode = "fine-tuned" if spec.finetune else "frozen probe"
+        corpus = (spec.data_dir or "datasets/verita-composite/ours").replace("datasets/", "")
         lines.append(
-            f"| {i} | `{spec.slug}` | {mode} | `{spec.hf_id}` "
+            f"| {i} | `{spec.slug}` | {mode} | `{corpus}` | `{spec.hf_id}` "
             f"| {fmt_best(r['accuracy'], r['accuracy'] == bests.get('accuracy'))} "
             f"| {fmt_best(r['precision'], r['precision'] == bests.get('precision'))} "
             f"| {fmt_best(r['recall'], r['recall'] == bests.get('recall'))} "

@@ -10,13 +10,16 @@
   pending|length }} pending{% endif %})
 </h2>
 {% if ours_sorted %}
-<p style="color: #6b7280">Bold marks the best value in each metric column.</p>
+<p style="color: #6b7280">Bold marks the best value in each metric column.
+Each row's metrics are computed against the test split that matches its
+<strong>training corpus</strong> (shown in its own column).</p>
 <table>
   <thead>
     <tr>
       <th>#</th>
       <th>Model</th>
       <th>Mode</th>
+      <th>Corpus</th>
       <th class="num">Accuracy</th>
       <th class="num">Precision</th>
       <th class="num">Recall</th>
@@ -29,6 +32,7 @@
       <td>{{ loop.index }}</td>
       <td><code>{{ r.slug }}</code></td>
       <td>{{ 'fine-tuned' if r.finetune else 'frozen probe' }}</td>
+      <td><code>{{ r.corpus }}</code></td>
       <td class="num">
         {% if r.accuracy_best %}<strong>{{ '%.4f'|format(r.accuracy) }}</strong
         >{% else %}{{ '%.4f'|format(r.accuracy) }}{% endif %}
@@ -59,6 +63,7 @@
     <tr>
       <th>Model</th>
       <th>Mode</th>
+      <th>Corpus</th>
       <th>HF id</th>
     </tr>
   </thead>
@@ -67,6 +72,7 @@
     <tr>
       <td><code>{{ r.slug }}</code></td>
       <td>{{ 'fine-tuned' if r.finetune else 'frozen probe' }}</td>
+      <td><code>{{ r.corpus }}</code></td>
       <td class="pending"><code>{{ r.hf_id }}</code></td>
     </tr>
     {% endfor %}

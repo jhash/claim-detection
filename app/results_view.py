@@ -29,17 +29,24 @@ def _annotate_bests(rows: list[dict], keys: list[str]) -> None:
 
 
 def build_view() -> dict:
+    def _corpus(spec):
+        return (spec.data_dir or "datasets/verita-composite/ours").replace("datasets/", "")
+
     rows = []
     for spec in MODELS:
         fp = RESULTS_DIR / f"{spec.slug}.json"
         if not fp.exists():
-            rows.append({"slug": spec.slug, "hf_id": spec.hf_id, "finetune": spec.finetune, "pending": True})
+            rows.append({
+                "slug": spec.slug, "hf_id": spec.hf_id, "finetune": spec.finetune,
+                "corpus": _corpus(spec), "pending": True,
+            })
             continue
         d = json.loads(fp.read_text())
         rows.append({
             "slug": spec.slug,
             "hf_id": spec.hf_id,
             "finetune": spec.finetune,
+            "corpus": _corpus(spec),
             "accuracy": d.get("accuracy"),
             "precision": d.get("precision"),
             "recall": d.get("recall"),

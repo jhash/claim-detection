@@ -28,10 +28,16 @@ from transformers import AutoModelForSequenceClassification, AutoTokenizer
 from src.models import MODELS, ModelSpec, get
 
 ROOT = Path(__file__).resolve().parent.parent
-DATA_DIR = ROOT / "datasets" / "verita-composite" / "ours"
+DEFAULT_DATA_DIR = ROOT / "datasets" / "verita-composite" / "ours"
 RUNS_DIR = ROOT / "runs"
 RESULTS_DIR = ROOT / "results"
 csv.field_size_limit(sys.maxsize)
+
+
+def data_dir_for(spec: ModelSpec) -> Path:
+    if spec.data_dir:
+        return ROOT / spec.data_dir
+    return DEFAULT_DATA_DIR
 
 
 def pick_device() -> str:
@@ -42,9 +48,10 @@ def pick_device() -> str:
     return "cpu"
 
 
-def read_test_split() -> tuple[list[str], list[int]]:
+def read_test_split(data_dir: Path | None = None) -> tuple[list[str], list[int]]:
+    data_dir = data_dir or DEFAULT_DATA_DIR
     texts, labels = [], []
-    with (DATA_DIR / "test.csv").open(encoding="utf-8") as f:
+    with (data_dir / "test.csv").open(encoding="utf-8") as f:
         for row in csv.DictReader(f):
             t = (row.get("text") or "").strip()
             l = row.get("label", "").strip()
@@ -84,7 +91,7 @@ def evaluate_one(spec: ModelSpec, args, device: str) -> dict:
     tok = AutoTokenizer.from_pretrained(str(ckpt))
     model = AutoModelForSequenceClassification.from_pretrained(str(ckpt))
 
-    texts, y_true = read_test_split()
+    texts, y_true = read_test_split(data_dir_for(spec))
     y_pred = predict(model, tok, texts, device, args.batch_size, args.max_length)
     p, r, f1, _ = precision_recall_fscore_support(y_true, y_pred, average="binary", zero_division=0)
     elapsed = time.time() - started
@@ -95,6 +102,7 @@ def evaluate_one(spec: ModelSpec, args, device: str) -> dict:
         "finetune": spec.finetune,
         "device": device,
         "n_test": len(y_true),
+        "data_dir": str(data_dir_for(spec).relative_to(ROOT)),
         "elapsed_sec": round(elapsed, 1),
         "accuracy": round(float(accuracy_score(y_true, y_pred)), 4),
         "precision": round(float(p), 4),

@@ -141,13 +141,18 @@ while :; do
   api_replicas=$(docker service ls --filter "name=${STACK}_api" --format '{{.Replicas}}' | head -n1)
   worker_replicas=$(docker service ls --filter "name=${STACK}_worker" --format '{{.Replicas}}' | head -n1)
 
+  api_running=${api_replicas%%/*}
+  api_desired=${api_replicas##*/}
+  worker_running=${worker_replicas%%/*}
+  worker_desired=${worker_replicas##*/}
+
   api_ready=0
   worker_ready=0
 
-  if [ "$api_image" = "$IMAGE" ] && [[ "$api_replicas" =~ ^([0-9]+)/\1$ ]] && { [ "$api_state" = "completed" ] || [ -z "$api_state" ]; }; then
+  if [ "$api_image" = "$IMAGE" ] && [ -n "$api_replicas" ] && [ "$api_running" = "$api_desired" ] && { [ "$api_state" = "completed" ] || [ -z "$api_state" ]; }; then
     api_ready=1
   fi
-  if [ "$worker_image" = "$IMAGE" ] && [[ "$worker_replicas" =~ ^([0-9]+)/\1$ ]] && { [ "$worker_state" = "completed" ] || [ -z "$worker_state" ]; }; then
+  if [ "$worker_image" = "$IMAGE" ] && [ -n "$worker_replicas" ] && [ "$worker_running" = "$worker_desired" ] && { [ "$worker_state" = "completed" ] || [ -z "$worker_state" ]; }; then
     worker_ready=1
   fi
 

@@ -75,6 +75,54 @@ Scale the worker independently of the API:
 docker service scale claim-detection_worker=4
 ```
 
+### Blue-green-style rolling redeploy
+
+The compose file is wired for zero-downtime rolling updates with
+`order: start-first` and `failure_action: rollback` on both `api`
+and `worker`. To ship a new release:
+
+```bash
+# On the swarm manager host, from the project root
+./scripts/deploy_swarm.sh
+```
+
+What the script does:
+
+1. `git pull` the latest source.
+2. Tags the new image as `claim-detection:<git-short-sha>` —
+   immutable, recoverable, no `:latest` ambiguity.
+3. Builds the image locally.
+4. Stand-alone smoke: spins a one-shot container on a non-conflicting
+   host port, hits `/api/healthz`, aborts the deploy if it fails.
+5. `docker stack deploy`s the new tag. Swarm rolls tasks one at a
+   time — a NEW task starts on the new image, becomes healthy,
+   THEN the old task shuts down. Zero downtime as long as
+   `API_REPLICAS >= 2` (default in the script).
+6. Watches `UpdateStatus.State` until it reaches `completed` (or
+   `rollback_completed` if the new tasks failed health checks
+   within 30 s — the script exits non-zero in that case).
+7. Hits `/api/healthz` and prints the running tag.
+
+Useful flags:
+
+```bash
+./scripts/deploy_swarm.sh --skip-pull            # build local changes without pulling
+./scripts/deploy_swarm.sh --tag abc1234          # roll to a specific previous tag (no build)
+./scripts/deploy_swarm.sh --skip-smoke           # skip the stand-alone smoke
+API_REPLICAS=4 ./scripts/deploy_swarm.sh         # scale api to 4 replicas
+```
+
+Manual rollback (if an update converged but a subtle bug shows up
+later):
+
+```bash
+docker service rollback claim-detection_api
+docker service rollback claim-detection_worker
+
+# Or pin to a known-good tag:
+TAG=abc1234 docker stack deploy -c docker-compose.yml claim-detection
+```
+
 Note: the Swarm deploy expects the model directory to be available on
 each node where `worker` or `api` lands. Either:
 

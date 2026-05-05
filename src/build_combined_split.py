@@ -62,10 +62,17 @@ def _read_csv(path: Path, source_label: str, text_col: str = "text", label_col: 
 def gather() -> list[dict]:
     """Concat every binary-fit corpus we vendor. Each row carries
     its `source` so a downstream filter could re-derive the original
-    composition without re-reading these files."""
+    composition without re-reading these files.
+
+    IMPORTANT: we deliberately exclude verita-composite/ours/test.csv
+    from the training pool. That file is the canonical in-domain test
+    set for every model in `src.models.MODELS`; pooling it would leak
+    verita-test sentences into v2's training and inflate any
+    apples-to-apples vs Ettin v1. (The first cut of this script had
+    that bug — fixed in commit `b0bcfdd`.)"""
     rows: list[dict] = []
     rows += _read_csv(DATASETS / "verita-composite/ours/train.csv", "verita-composite-ours-train")
-    rows += _read_csv(DATASETS / "verita-composite/ours/test.csv", "verita-composite-ours-test")
+    # NOTE: verita-composite/ours/test.csv is intentionally NOT included.
     rows += _read_csv(DATASETS / "claimify/normalized.csv", "claimify")
     for split in ("train", "dev", "test"):
         fp = DATASETS / "checkthat-2025/task1-subjectivity" / f"normalized_{split}.csv"

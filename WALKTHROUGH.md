@@ -319,6 +319,57 @@ where Bell's exact split isn't published.
    LLM, the top 4 models cluster in 0.91–0.92 F1, far above what Bell
    reports for Llama-3.2-1B (0.864) or Factcheck-GPT zero-shot (0.708).
 
+### Bonus experiment: does broader training data help? (No.)
+
+We ran a second Ettin (`ettin-150m-ft-combined`, slug ends in
+`-combined`) on a broader training set:
+
+- **Pool**: `verita-composite/ours/train.csv` (10,396) +
+  `claimify/normalized.csv` (6,490 LLM-generated sentences) +
+  `checkthat-2025-task1` English splits (1,592 subjectivity sentences).
+- **After dedup**: 20,659 unique sentences, fixed-seed 80/20 split into
+  `datasets/combined-v1/{train,test}.csv`.
+
+Apples-to-apples comparison on the same yardstick (verita-test
+sentences neither model saw during training):
+
+| | v1 — verita only | v2 — combined-v1 |
+|---|---:|---:|
+| **In-domain F1** (unseen verita-test) | **0.9167** (n=2,600) | 0.8870 (n=507) |
+| **OOD F1** on CT22 (tweets) | **0.7757** | 0.7324 |
+| **In-domain F1** on combined-v1 test | n/a | 0.879 |
+
+**v2 is worse on both fronts.** Adding subjectivity (CheckThat-T1) and
+LLM-generated text (Claimify) **diluted** the model's claim-detection
+decision boundary instead of broadening it usefully. Two reasons this
+isn't surprising in retrospect:
+
+1. **Label semantics drift.** Subjectivity (SUBJ vs OBJ) is correlated
+   with check-worthiness but not the same target. A subjective sentence
+   ("the new design feels off") usually isn't a verifiable claim; an
+   objective sentence ("the GDP fell 0.3% last quarter") usually is.
+   Mixing them teaches the model a slightly different decision
+   boundary, hurting the headline task.
+2. **Domain mismatch.** Claimify is sentences from BingCheck (commercial
+   search-assistant LLM answers), wildly different in style and topic
+   from political-debate sentences. The model has to spend capacity
+   reconciling both, leaving less for either.
+
+So the right experiment isn't "more data is better" — it's "matched data
+helps, mismatched data hurts." A future v3 worth trying:
+**ClaimBuster + PoliClaim + AVeriTeC + a similarly check-worthy fact-checking
+dataset** (e.g. CheckThat 2024 Task 1A) — where the label semantics align.
+
+**Methodology note**: the original `build_combined_split.py` had a bug —
+it pooled `verita-composite/ours/test.csv` into the training pool before
+re-splitting, so ~80% of verita's test sentences leaked into v2's
+training. The 0.887 F1 above is on the 507 verita-test sentences v2
+genuinely never saw; the leaked-included number on the full verita-test
+was 0.9696 (memorization-inflated, ignore). The bug is fixed in
+`src/build_combined_split.py` — verita-test is now excluded from the
+pool — but the existing v2 checkpoint reflects the pre-fix split. If we
+ever rebuild combined-v1 we'd retrain.
+
 ---
 
 ## The metrics, ELI5

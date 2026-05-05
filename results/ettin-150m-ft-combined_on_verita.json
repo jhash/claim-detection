@@ -1,0 +1,8 @@
+{
+  "note": "Ettin v2 evaluated on the verita-composite test set (NOT v2's own test set) \u2014 apples-to-apples vs Ettin v1.",
+  "n_test": 2600,
+  "accuracy": 0.9719,
+  "precision": 0.9806,
+  "recall": 0.9588,
+  "f1": 0.9696
+}

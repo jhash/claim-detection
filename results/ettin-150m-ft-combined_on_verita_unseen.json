@@ -1,0 +1,9 @@
+{
+  "note": "Ettin v2 (combined-v1 training) evaluated on the subset of verita-test NOT in v2's training. Honest A/B vs Ettin v1's F1 of 0.9167 on the full verita-test.",
+  "leaked_into_v2_training": 2093,
+  "honest_n_test": 507,
+  "accuracy": 0.8955,
+  "precision": 0.9083,
+  "recall": 0.8667,
+  "f1": 0.887
+}

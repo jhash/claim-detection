@@ -2,10 +2,31 @@
 {% block title %}Claim Detection — Try it{% endblock %}
 {% block heading %}Type a sentence{% endblock %}
 {% block content %}
-<p>Server is running in {% if queue %}<strong>queued</strong>{% else %}<strong>sync</strong>{% endif %} mode.</p>
-<form hx-post="/ui/predict" hx-target="#result" hx-swap="innerHTML" hx-disabled-elt="button">
-    <textarea name="text" rows="3" placeholder="e.g. The 9/11 Commission report said America is safer but not yet safe."></textarea>
-    <p><button type="submit">Predict</button></p>
+<p>Server is running in {% if queue %}<strong>queued</strong>{% else %}<strong>sync</strong>{% endif %} mode.
+Enter to submit, Shift+Enter for a newline. Submit as many as you want — predictions stream into the table below.</p>
+
+<form id="predict-form"
+      hx-post="/ui/predict"
+      hx-target="#results-tbody"
+      hx-swap="afterbegin"
+      hx-on::after-request="document.querySelector('#predict-form textarea').value = ''; document.querySelector('#predict-form textarea').focus();">
+    <textarea name="text" rows="2" autofocus
+              placeholder="e.g. The 9/11 Commission report said America is safer but not yet safe."
+              onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();this.form.requestSubmit();}"></textarea>
+    <p><button type="submit">Predict (Enter)</button>
+       <span class="hint">submit-on-enter, shift+enter for newline</span></p>
 </form>
-<div id="result"></div>
+
+<table id="results-table">
+    <thead>
+        <tr>
+            <th style="width: 9rem;">Status</th>
+            <th>Sentence</th>
+            <th style="width: 16rem;">Result</th>
+        </tr>
+    </thead>
+    <tbody id="results-tbody">
+        <tr class="placeholder"><td colspan="3">No predictions yet — type something above and hit Enter.</td></tr>
+    </tbody>
+</table>
 {% endblock %}

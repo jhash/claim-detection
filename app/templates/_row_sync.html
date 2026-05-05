@@ -1,0 +1,13 @@
+<tr>
+    <td><span class="status status-finished">done</span></td>
+    <td class="sentence">{{ text }}</td>
+    <td>
+        {% set cls = 'claim' if result.is_claim else 'not-claim' %}
+        {% set verdict = 'CLAIM' if result.is_claim else 'NOT A CLAIM' %}
+        {% set pct = '%.1f'|format(result.confidence * 100) %}
+        <span class="result {{ cls }}">
+            <strong>{{ verdict }}</strong> — {{ pct }}%
+            <div class="conf-bar"><div style="width: {{ pct }}%"></div></div>
+        </span>
+    </td>
+</tr>

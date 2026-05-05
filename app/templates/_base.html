@@ -12,24 +12,42 @@
         h2 { font-size: 1.15rem; margin-top: 1.6rem; border-bottom: 1px solid #ddd; padding-bottom: 0.2rem; }
         nav a { margin-right: 1rem; }
         textarea, button, input { font: inherit; }
-        textarea { width: 100%; box-sizing: border-box; padding: 0.6rem; border: 1px solid #bbb; border-radius: 4px; }
+        textarea { width: 100%; box-sizing: border-box; padding: 0.6rem; border: 1px solid #bbb; border-radius: 4px; resize: vertical; }
+        textarea:focus { outline: 2px solid #2563eb; outline-offset: -1px; border-color: transparent; }
         button { padding: 0.5rem 1rem; border: 0; background: #2563eb; color: white; border-radius: 4px; cursor: pointer; }
         button:hover { background: #1d4ed8; }
-        .result { padding: 1rem; border: 1px solid #ddd; border-radius: 4px; margin-top: 1rem; background: #f9fafb; }
-        .result.claim { border-color: #16a34a; background: #ecfdf5; }
-        .result.not-claim { border-color: #dc2626; background: #fef2f2; }
-        .result.error { border-color: #dc2626; background: #fef2f2; color: #b91c1c; }
-        .conf-bar { height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden; margin-top: 0.4rem; }
-        .conf-bar > div { height: 100%; background: #2563eb; }
+        .hint { color: #6b7280; font-size: 0.85em; margin-left: 0.6rem; }
         table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
-        th, td { padding: 0.4rem 0.6rem; border-bottom: 1px solid #e5e7eb; text-align: left; }
-        th { background: #f3f4f6; }
+        th, td { padding: 0.5rem 0.6rem; border-bottom: 1px solid #e5e7eb; text-align: left; vertical-align: middle; }
+        th { background: #f3f4f6; font-weight: 600; }
         td.num { text-align: right; font-variant-numeric: tabular-nums; }
         td.pending { color: #6b7280; font-style: italic; }
+        td.sentence { word-break: break-word; }
+        tr.placeholder td { color: #9ca3af; font-style: italic; text-align: center; padding: 1.2rem; }
         code { background: #f3f4f6; padding: 0.05rem 0.3rem; border-radius: 3px; font-size: 0.85em; }
         .pos { color: #16a34a; }
         .neg { color: #dc2626; }
         footer { margin-top: 2rem; font-size: 0.85em; color: #6b7280; }
+
+        /* prediction status pill */
+        .status { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 999px; font-size: 0.78em; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+        .status-queued   { background: #fef3c7; color: #92400e; }
+        .status-started  { background: #dbeafe; color: #1d4ed8; }
+        .status-finished { background: #d1fae5; color: #065f46; }
+        .status-failed   { background: #fee2e2; color: #991b1b; }
+
+        /* prediction result cell */
+        .result { display: inline-block; min-width: 0; }
+        .result.pending   { color: #6b7280; }
+        .result.claim     { color: #065f46; }
+        .result.not-claim { color: #991b1b; }
+        .result.error     { color: #991b1b; }
+        .conf-bar { height: 5px; background: #e5e7eb; border-radius: 3px; overflow: hidden; margin-top: 0.25rem; width: 100%; }
+        .conf-bar > div { height: 100%; background: linear-gradient(90deg, #2563eb, #16a34a); transition: width 0.4s ease; }
+
+        /* spinner */
+        .spinner { display: inline-block; width: 0.85em; height: 0.85em; border: 2px solid #d1d5db; border-top-color: #2563eb; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: -2px; margin-right: 0.3rem; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>

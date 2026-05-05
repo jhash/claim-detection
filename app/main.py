@@ -110,18 +110,41 @@ async def predict_stream(job_id: str, request: Request) -> StreamingResponse:
                 break
             status, payload = job_status(job_id)
             if status != last_status:
-                yield _sse_event("status", {"status": status})
+                yield _sse_event("status", _render_status_html(status))
                 last_status = status
             if status in ("finished", "failed"):
-                yield _sse_event("result", payload)
+                yield _sse_event("result", _render_result_html(payload, status))
                 break
             await asyncio.sleep(0.5)
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
-def _sse_event(event: str, data: dict) -> str:
-    return f"event: {event}\ndata: {json.dumps(data)}\n\n"
+def _sse_event(event: str, data: str) -> str:
+    # SSE data must be prefixed line-by-line; collapse any newlines so the
+    # client sees one event no matter what.
+    flat = data.replace("\n", " ").strip()
+    return f"event: {event}\ndata: {flat}\n\n"
+
+
+def _render_status_html(status: str) -> str:
+    label = {"queued": "queued…", "started": "running…", "finished": "done", "failed": "error"}.get(status, status)
+    return f'<span class="status status-{status}">{label}</span>'
+
+
+def _render_result_html(payload, status: str) -> str:
+    if status == "failed" or not isinstance(payload, dict) or "is_claim" not in payload:
+        msg = (payload or {}).get("error", "job failed") if isinstance(payload, dict) else "job failed"
+        return f'<span class="result error">error: {msg}</span>'
+    is_claim = bool(payload["is_claim"])
+    conf = float(payload["confidence"])
+    cls = "claim" if is_claim else "not-claim"
+    verdict = "CLAIM" if is_claim else "NOT A CLAIM"
+    pct = f"{conf * 100:.1f}"
+    return (
+        f'<span class="result {cls}"><strong>{verdict}</strong> — {pct}%'
+        f'<div class="conf-bar"><div style="width:{pct}%"></div></div></span>'
+    )
 
 
 # ---------- HTMX UI ----------
@@ -134,9 +157,14 @@ def index(request: Request) -> HTMLResponse:
 
 @app.post("/ui/predict", response_class=HTMLResponse)
 def ui_predict(request: Request, text: str = Form("")):
-    if not text.strip():
+    """Returns a single <tr> HTML fragment to be appended to the results
+    table on the index page. The fragment is self-contained — it includes
+    its own SSE connection (queued mode) or its already-resolved result
+    (sync mode)."""
+    text = text.strip()
+    if not text:
         return templates.TemplateResponse(
-            request, "_result.html",
+            request, "_row_error.html",
             {"error": "Please enter a sentence."},
             status_code=400,
         )
@@ -145,17 +173,17 @@ def ui_predict(request: Request, text: str = Form("")):
 
         job = enqueue_predict(text)
         return templates.TemplateResponse(
-            request, "_streaming.html",
+            request, "_row_streaming.html",
             {"job_id": job.id, "text": text},
         )
     try:
         result = get_predictor().predict(text)
     except FileNotFoundError as e:
         return templates.TemplateResponse(
-            request, "_result.html", {"error": str(e)}, status_code=503
+            request, "_row_error.html", {"error": str(e)}, status_code=503
         )
     return templates.TemplateResponse(
-        request, "_result.html",
+        request, "_row_sync.html",
         {"text": text, "result": result.to_dict()},
     )
 

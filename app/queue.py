@@ -47,12 +47,18 @@ def enqueue_predict(text: str) -> Job:
 
 
 def job_status(job_id: str) -> tuple[str, dict | None]:
-    """Return (status_string, payload). status ∈ {queued, started, finished, failed, unknown}."""
+    """Return (status_string, payload). status ∈ {queued, started, finished, failed, unknown}.
+
+    Newer RQ versions return a JobStatus enum from get_status(); coerce
+    to its lowercase string value so callers and templates can rely on
+    plain strings."""
     try:
         job = Job.fetch(job_id, connection=_redis)
     except Exception:
         return "unknown", None
-    status = job.get_status(refresh=True)
+    raw = job.get_status(refresh=True)
+    status = getattr(raw, "value", raw)  # enum -> "finished"; str passes through
+    status = str(status).lower()
     payload = None
     if status == "finished":
         payload = job.result

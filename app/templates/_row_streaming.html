@@ -1,0 +1,5 @@
+<tr hx-ext="sse" sse-connect="/predict/{{ job_id }}/stream" sse-close="result" data-job-id="{{ job_id }}">
+    <td><span sse-swap="status"><span class="status status-queued">queued…</span></span></td>
+    <td class="sentence">{{ text }}</td>
+    <td sse-swap="result"><span class="result pending"><span class="spinner"></span> waiting…</span></td>
+</tr>

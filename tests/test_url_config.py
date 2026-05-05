@@ -134,6 +134,18 @@ def test_base_template_includes_favicon_links(monkeypatch):
     assert "apple-touch-icon" in body
 
 
+def test_nav_links_to_github(monkeypatch):
+    """Header has an outbound GitHub link."""
+    mod = _reload_with_env(monkeypatch, APP_URL=None, API_URL=None)
+    with TestClient(mod.app) as c:
+        r = c.get("/")
+    body = r.text
+    assert "https://github.com/jhash/claim-detection" in body
+    # opens in a new tab + secured against referrer-leak
+    assert 'target="_blank"' in body
+    assert 'rel="noopener"' in body
+
+
 def test_index_page_explains_what_it_does(monkeypatch):
     """The 'Try it' page tells the user what they're trying. The
     'Server is running in queued mode' line is gone."""

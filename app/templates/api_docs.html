@@ -1,0 +1,17 @@
+{% extends "_base.html" %}
+{% block title %}Claim Detection — API docs{% endblock %}
+{% block heading %}API documentation{% endblock %}
+{% block content %}
+<p>Auto-generated from the FastAPI route definitions. Try the
+<code>POST /api/predict/sync</code> endpoint right from this page —
+expand its row, click <em>Try it out</em>, and hit <em>Execute</em>.</p>
+
+<p style="color:#6b7280">For an alternative renderer (cleaner reading,
+worse for trying), see <a href="/redoc-raw" target="_blank">/redoc-raw</a>.
+Raw OpenAPI JSON: <a href="/openapi.json">/openapi.json</a>.</p>
+
+<iframe src="/docs-raw"
+        title="Swagger UI"
+        style="width:100%; height: 78vh; border: 1px solid #e5e7eb; border-radius: 4px; background: white;"
+        loading="lazy"></iframe>
+{% endblock %}

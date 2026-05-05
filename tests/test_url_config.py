@@ -80,10 +80,24 @@ def test_legacy_stream_path_redirects(monkeypatch):
     assert r.headers["location"].endswith("/api/predict/some-id/stream")
 
 
-def test_swagger_ui_at_docs(monkeypatch):
+def test_docs_page_wraps_swagger_in_base_layout(monkeypatch):
+    """/docs returns our wrapped page (nav, footer, iframe to /docs-raw)
+    so the Swagger UI inherits the site's container + header."""
     mod = _reload_with_env(monkeypatch, APP_URL=None, API_URL=None)
     with TestClient(mod.app) as c:
         r = c.get("/docs")
+    assert r.status_code == 200
+    assert "iframe" in r.text  # wrapper page embeds Swagger
+    assert "/docs-raw" in r.text  # iframe src
+    assert 'href="/"' in r.text  # nav still present
+
+
+def test_docs_raw_serves_swagger(monkeypatch):
+    """The bare Swagger renderer remains reachable at /docs-raw for the
+    iframe to load (and for direct linking)."""
+    mod = _reload_with_env(monkeypatch, APP_URL=None, API_URL=None)
+    with TestClient(mod.app) as c:
+        r = c.get("/docs-raw")
     assert r.status_code == 200
     assert "swagger" in r.text.lower()
 

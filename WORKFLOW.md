@@ -139,6 +139,82 @@ we mirror that.
 
 ---
 
+## "Wait — are we training and testing on the same data?"
+
+Short answer: **no, not on the same sentences**. Yes, on the same source
+distribution. Both are the right answer in different ways.
+
+### The split
+
+The Verita repo ships a frozen 80/20 holdout:
+
+- `datasets/verita-composite/ours/train.csv` — 10,425 sentences. We
+  fine-tune on this.
+- `datasets/verita-composite/ours/test.csv` — 2,607 sentences. We
+  *only* see this at evaluation time.
+
+The model never sees a single test sentence during training. We
+verified this directly by hashing every sentence in both files —
+the script is essentially:
+
+```python
+train_set = set of every train.csv text (lowercased, stripped)
+test_set  = set of every test.csv text  (lowercased, stripped)
+overlap = train_set & test_set
+```
+
+**Verdict: 18 of 2,596 test sentences (0.7%) also appear in
+train.csv** — small upstream-merge contamination from the Verita
+repo's own dedup logic. We don't generate this overlap; it's a fact
+about the source dataset. With 99.3% of the test set genuinely
+unseen, the F1 number is meaningful — but it's worth knowing the
+test isn't perfectly clean. (At the scale of the gap to Bell, this
+is well within noise.)
+
+### Same source distribution = matching the paper
+
+Both train and test come from the same blend of ClaimBuster +
+PoliClaim + AVeriTeC sentences. This is **on purpose** and matches
+exactly what Bell does in the FEVER 2025 paper — Bell's main table
+reports **in-domain** numbers (train and test from the same
+composite). Same for the original Claimbuster paper, the PoliClaim
+paper, and most claim-detection literature: standard practice is to
+split a single labeled corpus 80/20 and report metrics on the held-
+out 20%.
+
+This is sometimes called "in-domain evaluation," and it answers the
+question: *can the model learn the boundary between claim and
+non-claim, given examples drawn from the same kind of source?* It
+**does not** answer: *will it generalize to text from a different
+source?* That's a separate question — see the OOD section below.
+
+### Why this is honest, not cheating
+
+A model that scores well on in-domain holdout is genuinely doing
+something useful — it has learned the task on a fixed distribution.
+But it's a **floor**, not a ceiling. To know whether it generalizes
+beyond the trained distribution, you need OOD evaluation, which we
+also do. Bell does this too (their paper has an OOD section showing
+where the LLMs' broader pretraining helps them more than encoders).
+
+### Does Bell do anything different?
+
+Slightly. Bell's main comparison table is **in-domain only** — the
+12,997-sentence composite split as 80/20. Their Section 4 then runs
+**transfer / OOD** experiments where models trained on one source
+get evaluated on another (e.g. trained on Claimbuster, tested on
+PoliClaim). That's what tells the "fine-tuned encoders win
+in-domain, but LLMs gain ground OOD" story.
+
+We do both: in-domain comparison in `RESULTS.md` (matches Bell's
+main table), and a separate OOD section evaluating against
+**Claimify** (LLM-generated text from BingCheck) and **CheckThat
+2022** (tweets) — datasets the models have *never* seen during
+training and whose source distribution is wildly different from
+political-debate sentences.
+
+---
+
 ## The data: where it came from, what's in it
 
 **Training corpus**: `datasets/verita-composite/ours/train.csv` —

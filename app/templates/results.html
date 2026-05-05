@@ -72,4 +72,37 @@
     {% endfor %}
     </tbody>
 </table>
+
+{% if ood_sections %}
+<h2>Out-of-domain</h2>
+<p style="color:#6b7280">Sentence sets from totally different distributions
+than the training data. A model that's truly learned "claim-likeness" — vs.
+just memorizing political-debate patterns — should hold up here. The
+"Δ" column quantifies how much each model loses when moved off-distribution.</p>
+
+{% for section in ood_sections %}
+<h3><code>{{ section.name }}</code></h3>
+<p>{{ section.description|safe }}</p>
+<table>
+    <thead><tr><th>#</th><th>Model</th><th>Mode</th><th class="num">OOD Acc</th><th class="num">OOD P</th><th class="num">OOD R</th><th class="num">OOD F1</th><th class="num">In-domain F1</th><th class="num">Δ</th></tr></thead>
+    <tbody>
+    {% for r in section.rows %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td><code>{{ r.slug }}</code></td>
+            <td>{{ 'fine-tuned' if r.finetune else 'frozen probe' }}</td>
+            <td class="num">{{ '%.4f'|format(r.accuracy) }}</td>
+            <td class="num">{{ '%.4f'|format(r.precision) }}</td>
+            <td class="num">{{ '%.4f'|format(r.recall) }}</td>
+            <td class="num"><strong>{{ '%.4f'|format(r.f1) }}</strong></td>
+            <td class="num">{% if r.in_f1 is not none %}{{ '%.4f'|format(r.in_f1) }}{% else %}—{% endif %}</td>
+            <td class="num {% if r.delta is not none and r.delta >= 0 %}pos{% elif r.delta is not none %}neg{% endif %}">
+                {% if r.delta is not none %}{{ '+' if r.delta >= 0 else '' }}{{ '%.4f'|format(r.delta) }}{% else %}—{% endif %}
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endfor %}
+{% endif %}
 {% endblock %}

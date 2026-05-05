@@ -46,8 +46,11 @@ app = FastAPI(
         f"Browse the UI at {APP_URL}/."
     ),
     version="0.1.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
+    # The bare Swagger / ReDoc renderers stay reachable at /docs-raw and
+    # /redoc-raw so they can be embedded in /docs and /redoc, which are
+    # wrapped by our base template (preserving the nav and container width).
+    docs_url="/docs-raw",
+    redoc_url="/redoc-raw",
 )
 
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent / "templates"))
@@ -312,9 +315,17 @@ def index(request: Request) -> HTMLResponse:
     )
 
 
+@app.get("/docs", response_class=HTMLResponse)
+def docs_page(request: Request) -> HTMLResponse:
+    """Swagger UI wrapped in our base layout — keeps the nav and container
+    width consistent across pages. The raw Swagger renderer stays
+    available at /docs-raw for direct linking."""
+    return templates.TemplateResponse(request, "api_docs.html", {})
+
+
 @app.get("/api-docs", response_class=HTMLResponse)
 def api_docs_redirect() -> RedirectResponse:
-    """Friendly path for the auto-generated OpenAPI/Swagger UI."""
+    """Friendly alias for /docs."""
     return RedirectResponse(url="/docs")
 
 

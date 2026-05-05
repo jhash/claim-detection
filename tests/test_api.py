@@ -95,10 +95,13 @@ def test_ui_predict_returns_streaming_row_in_queued_mode(client, monkeypatch):
     body = r.text
     assert body.lstrip().startswith("<tr")
     assert "Inflation is up." in body
-    assert 'sse-connect="/predict/test-job-abc/stream"' in body
+    assert 'sse-connect="/api/predict/test-job-abc/stream"' in body
     assert "spinner" in body  # loading indicator class
     assert "queued" in body.lower()
     assert enq_calls == ["Inflation is up."]
+    # Out-of-band swap removes the placeholder row on the first enqueue.
+    assert 'id="placeholder-row"' in body
+    assert 'hx-swap-oob="delete"' in body
 
 
 def test_ui_predict_blank_returns_error_row(client):

@@ -1,0 +1,23 @@
+{
+  "slug": "modernbert-base-pretrained",
+  "hf_id": "answerdotai/ModernBERT-base",
+  "finetune": false,
+  "device": "mps",
+  "elapsed_sec": 177.7,
+  "per_dataset": {
+    "claimify": {
+      "n": 6490,
+      "accuracy": 0.7513,
+      "precision": 0.7434,
+      "recall": 0.8842,
+      "f1": 0.8077
+    },
+    "ct22": {
+      "n": 911,
+      "accuracy": 0.6334,
+      "precision": 0.6322,
+      "recall": 1.0,
+      "f1": 0.7746
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "slug": "ettin-150m-pretrained",
+  "hf_id": "jhu-clsp/ettin-encoder-150m",
+  "finetune": false,
+  "device": "mps",
+  "elapsed_sec": 162.6,
+  "per_dataset": {
+    "claimify": {
+      "n": 6490,
+      "accuracy": 0.7616,
+      "precision": 0.7578,
+      "recall": 0.8766,
+      "f1": 0.8129
+    },
+    "ct22": {
+      "n": 911,
+      "accuracy": 0.6378,
+      "precision": 0.635,
+      "recall": 1.0,
+      "f1": 0.7767
+    }
+  }
+}

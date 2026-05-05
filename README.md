@@ -295,15 +295,46 @@ Three services: `api` (FastAPI), `worker` (RQ), `redis`. The model
 checkpoint at `runs/ettin-150m-ft/final/` is mounted read-only into
 both `api` and `worker`.
 
+**Bring it up:**
+
 ```bash
-docker compose up --build              # foreground
-docker compose up -d --build           # background
-curl http://localhost:8000/healthz
+docker compose up --build              # foreground (logs follow)
+docker compose up -d --build           # detached / background
+
+# verify it's reachable (give it ~10–15s for the worker to load the model)
+curl http://localhost:8000/api/healthz
+# {"status":"ok","queue":true}
+
+# open the UI
+open http://localhost:8000/            # macOS
+xdg-open http://localhost:8000/        # Linux
 ```
 
-In compose mode the API runs with `QUEUE=1` — POST `/predict` returns
+In compose mode the API runs with `QUEUE=1` — `POST /api/predict` returns
 `{job_id, stream_url}` immediately, the worker processes the job, and
 the client SSE-streams `status` updates + the final `result`.
+
+**Take it down:**
+
+```bash
+docker compose down                    # stops and removes containers + network
+docker compose down -v                 # also drops the (currently empty) named volumes
+docker compose down --rmi local        # also removes the locally-built image
+```
+
+`docker compose down` is the inverse of `up`. Run it when you're done
+poking and want port `:8000` back. Re-running `docker compose up -d`
+later restarts everything from the same configuration; nothing on disk
+in `runs/`, `results/`, or `datasets/` is affected.
+
+**Useful while it's running:**
+
+```bash
+docker compose ps                      # what's up and healthy
+docker compose logs -f api             # tail api logs
+docker compose logs -f worker          # tail worker logs (model loads, RQ jobs)
+docker compose restart api             # restart only the api container
+```
 
 ### Server — `docker stack deploy` (Swarm)
 

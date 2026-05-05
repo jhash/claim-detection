@@ -10,7 +10,6 @@ Endpoints:
 
 from __future__ import annotations
 
-import asyncio
 import json
 import os
 from pathlib import Path
@@ -97,25 +96,45 @@ def predict(req: PredictRequest):
     return PredictResponse(**result.to_dict())
 
 
+POLL_INTERVAL_SEC = float(os.environ.get("STREAM_POLL_SEC", "0.05"))
+POLL_TIMEOUT_SEC = float(os.environ.get("STREAM_TIMEOUT_SEC", "60"))
+
+
 @app.get("/predict/{job_id}/stream")
 async def predict_stream(job_id: str, request: Request) -> StreamingResponse:
     if not USE_QUEUE:
         raise HTTPException(status_code=400, detail="queue is disabled (QUEUE=0)")
+    import asyncio as _asyncio
+
     from app.queue import job_status
 
     async def event_stream():
+        # Tight-poll Redis for status changes. We tried pub/sub but
+        # redis-py doesn't guarantee the SUBSCRIBE ack lands before our
+        # status check, so events fired between subscribe-call and
+        # subscribe-confirm get silently lost. 50 ms polling gives ~25 ms
+        # average latency — well below human perception — without that
+        # class of race condition. ~20 lookups/sec on a single Redis
+        # instance is negligible.
         last_status = None
+        deadline = _asyncio.get_event_loop().time() + POLL_TIMEOUT_SEC
         while True:
             if await request.is_disconnected():
-                break
+                return
             status, payload = job_status(job_id)
             if status != last_status:
                 yield _sse_event("status", _render_status_html(status))
                 last_status = status
             if status in ("finished", "failed"):
                 yield _sse_event("result", _render_result_html(payload, status))
-                break
-            await asyncio.sleep(0.5)
+                return
+            if _asyncio.get_event_loop().time() > deadline:
+                yield _sse_event(
+                    "result",
+                    _render_result_html({"error": "timed out waiting for worker"}, "failed"),
+                )
+                return
+            await _asyncio.sleep(POLL_INTERVAL_SEC)
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 

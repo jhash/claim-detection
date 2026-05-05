@@ -22,11 +22,11 @@ _queue = Queue(QUEUE_NAME, connection=_redis)
 
 def predict_task(text: str) -> dict:
     """Worker-side function — heavy import lives inside so the API process
-    doesn't have to load PyTorch when QUEUE=1."""
-    from app.predictor import Predictor
+    doesn't have to load PyTorch when QUEUE=1.
 
-    # The Predictor is module-state on the worker side, loaded once per
-    # worker process via a module-level cache.
+    Module-state cache via _get_worker_predictor() keeps the model
+    resident across jobs. Requires the worker to run in SimpleWorker
+    mode (no fork-per-job) — see docker-compose.yml."""
     return _get_worker_predictor().predict(text).to_dict()
 
 
@@ -44,6 +44,8 @@ def _get_worker_predictor():
 
 def enqueue_predict(text: str) -> Job:
     return _queue.enqueue(predict_task, text, job_timeout=60, result_ttl=300)
+
+
 
 
 def job_status(job_id: str) -> tuple[str, dict | None]:

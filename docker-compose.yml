@@ -30,7 +30,12 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
-    command: ["rq", "worker", "claim", "--url", "redis://redis:6379/0"]
+    # SimpleWorker: do NOT fork per job. Default RQ behavior forks each
+    # job into a child process which means our model gets re-loaded
+    # from disk every time — ~1.9s of wasted work per request. With
+    # SimpleWorker the model stays resident in the worker process, so
+    # the predictor cache in app.queue actually does its job.
+    command: ["rq", "worker", "claim", "--worker-class", "rq.SimpleWorker", "--url", "redis://redis:6379/0"]
     environment:
       MODEL_PATH: /model
       REDIS_URL: redis://redis:6379/0

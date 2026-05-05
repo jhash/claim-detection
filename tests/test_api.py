@@ -120,7 +120,8 @@ def test_index_page_has_streaming_table(client):
     # Re-focus textarea after each submit.
     assert "after-request" in body
     assert ".focus()" in body
-    # Placeholder row.
+    # Placeholder row, with id matching what the OOB swap targets.
+    assert 'id="placeholder-row"' in body
     assert "No predictions yet" in body
 
 

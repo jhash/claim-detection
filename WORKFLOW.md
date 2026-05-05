@@ -1,4 +1,4 @@
-# Interview Guide — Claim Detection Takehome
+# Workflow — Claim Detection Takehome
 
 A walk-through of this repo for someone presenting it. Written assuming you
 write very little Python and haven't done ML before. Read top-to-bottom; the
@@ -61,7 +61,7 @@ claim-detection/
 ├── runs/                    # Trained model checkpoints (gitignored)
 ├── results/                 # Per-model JSON metrics
 ├── RESULTS.md               # The final comparison table
-└── INTERVIEW_GUIDE.md       # This file
+└── WORKFLOW.md              # This file
 ```
 
 ### The four scripts you might be asked about

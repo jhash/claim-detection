@@ -312,17 +312,59 @@ encoder Bell tested.
 
 ### What the API's `confidence` is, separately
 
-The `confidence` field returned from `/predict` is **softmax probability
-of the predicted class**, not F1 or accuracy. It's the model's own
-self-rated certainty for *one* prediction, on a 0–1 scale. A confidence
-of 0.93 means the model assigned 93% probability to the predicted label.
+The `confidence` field returned from `/api/predict/sync` is **softmax
+probability of the predicted class**, not F1 or accuracy. It's the
+model's own self-rated certainty for *one* prediction, on a 0–1 scale.
+A confidence of 0.93 means the model assigned 93% probability to the
+predicted label.
 
-Worth a caveat: raw softmax probabilities aren't perfectly calibrated.
-A confidence of 0.93 doesn't literally mean "9.3 of 10 such predictions
-will be right" — modern transformers tend to be slightly over-confident.
-**Calibration (e.g. temperature scaling) is in the deferred list** in
-the README; if it ships, the `confidence` field becomes meaningfully
-calibrated rather than just monotonic.
+#### How it's computed (the actual code path)
+
+There's no built-in "confidence" field that PyTorch or HuggingFace
+hands you for free. Sequence-classification models return raw **logits**
+(unnormalized scores per class), and we compute the probability
+ourselves. The relevant lines, in `app/predictor.py`:
+
+```python
+logits = self.model(**enc).logits[0]            # tensor, shape [num_classes=2]
+probs = torch.softmax(logits, dim=-1)            # turn logits into a probability dist
+pred_idx = int(torch.argmax(probs).item())       # 0 = not_claim, 1 = claim
+confidence = float(probs[pred_idx].item())       # the prob of whichever class won
+```
+
+Walking through it:
+
+1. **`model(**enc).logits`** — the model's raw output. For a binary
+   classifier this is a tensor of shape `[2]`, e.g. `[1.4, 3.2]`. These
+   are *not* probabilities — they can be any real number. Higher means
+   "more in favor of this class," but you can't say "65% confident"
+   from `1.4`.
+2. **`torch.softmax(logits, dim=-1)`** — applies the softmax function
+   `exp(x_i) / sum(exp(x_j))`. This squashes the logits into a
+   probability distribution: each entry is in `[0, 1]` and they sum to
+   `1`. So `[1.4, 3.2]` becomes roughly `[0.14, 0.86]`.
+3. **`torch.argmax(probs)`** — picks the class with the higher
+   probability (`1`, "claim", in this example).
+4. **`probs[pred_idx]`** — that's the confidence: `0.86`.
+
+So "confidence" is just the softmax probability of whichever class won.
+It's the most common convention for binary-classifier APIs, but it's a
+*choice* made in our wrapper code — not something PyTorch decides for us.
+
+#### Calibration caveat
+
+Raw softmax probabilities aren't perfectly calibrated. A confidence of
+0.93 doesn't literally mean "9.3 out of 10 such predictions will be
+right" — modern transformers tend to be **over-confident**, especially
+on in-domain data. We saw this live: predictions on Bell-paper
+sentences regularly come back at `confidence: 1.0`, which is the
+softmax saturating, not the model being literally certain.
+
+**Calibration (e.g. temperature scaling)** is in the deferred list in
+the README. If it ships, the `confidence` field becomes meaningfully
+probabilistic rather than just monotonic. Until then, treat the value
+as "rank, don't trust": 0.95 is more confident than 0.80, but neither
+is necessarily a true probability.
 
 ---
 

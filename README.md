@@ -104,6 +104,10 @@ Live version at `RESULTS.md`. Final 8-model sweep, sorted by F1:
 - **F1** — harmonic mean of precision and recall. Punishes lopsided
   models (perfect precision but bad recall scores a low F1, even
   though the average would look fine).
+- **`confidence`** (returned per-prediction by the API) — softmax
+  probability of the predicted class. This is *derived from* the
+  model's logits via `torch.softmax(logits)[pred_idx]`, not built into
+  PyTorch — see `WORKFLOW.md` for the exact 4-line code path.
 
 **F1 is the key metric here** because (1) we want both fewer false
 alarms *and* fewer misses, with no good reason to prefer one, and (2)
@@ -246,14 +250,36 @@ echo "Some sentence" | .venv/bin/python -m app.cli predict -
 
 ### Endpoints
 
+Browse the auto-generated Swagger UI at <http://localhost:8000/docs>
+(or `/redoc` for the alternative renderer).
+
 | method | path | purpose |
 |---|---|---|
-| `GET`  | `/`                          | HTMX UI (form + result) |
-| `GET`  | `/results`                   | server-rendered comparison table |
-| `GET`  | `/healthz`                   | readiness probe |
-| `POST` | `/predict`                   | sync predict (`QUEUE=0`) or enqueue (`QUEUE=1`) |
-| `GET`  | `/predict/{job_id}/stream`   | SSE keep-alive: emits `status` events, then a final `result` event |
-| `POST` | `/ui/predict`                | HTMX-targeted endpoint that returns an HTML fragment |
+| `GET`  | `/`                              | HTMX UI (form + streaming results table) |
+| `GET`  | `/results`                       | server-rendered comparison table |
+| `GET`  | `/docs`                          | Swagger UI for the API |
+| `POST` | `/api/predict/sync`              | **recommended** — blocks until prediction is ready, returns JSON |
+| `POST` | `/api/predict`                   | enqueue + return `{job_id, stream_url}` (queued mode) |
+| `GET`  | `/api/predict/{job_id}/stream`   | SSE keep-alive: status events + final result event |
+| `GET`  | `/api/healthz`                   | readiness probe |
+| `POST` | `/ui/predict`                    | HTMX-targeted endpoint that returns an HTML row fragment |
+
+The legacy paths `/predict`, `/predict/sync`, `/predict/{id}/stream`,
+`/healthz` redirect (308, preserves method + body) to their `/api/*`
+counterparts.
+
+### Try it from your shell
+
+```bash
+curl -X POST http://localhost:8000/api/predict/sync \
+    -H 'content-type: application/json' \
+    -d '{"text": "Inflation hit 9.1% in June 2022."}'
+# {"is_claim":true,"confidence":1.0,"label":"claim"}
+```
+
+Set `APP_URL=https://claims.jakehash.com` (and optionally
+`API_URL=https://api.claims.jakehash.com`) when deploying — the curl
+example shown in the UI and Swagger UI updates automatically.
 
 ---
 

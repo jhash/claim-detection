@@ -25,6 +25,9 @@
         td.sentence { word-break: break-word; }
         tr.placeholder td { color: #9ca3af; font-style: italic; text-align: center; padding: 1.2rem; }
         code { background: #f3f4f6; padding: 0.05rem 0.3rem; border-radius: 3px; font-size: 0.85em; }
+        pre { background: #f3f4f6; padding: 0.6rem; border-radius: 4px; overflow-x: auto; font-size: 0.85em; }
+        pre code { background: transparent; padding: 0; }
+        details summary { cursor: pointer; color: #2563eb; font-size: 0.9em; margin: 0.5rem 0; }
         .pos { color: #16a34a; }
         .neg { color: #dc2626; }
         footer { margin-top: 2rem; font-size: 0.85em; color: #6b7280; }
@@ -54,7 +57,8 @@
     <nav>
         <a href="/">Try it</a>
         <a href="/results">Results</a>
-        <a href="/healthz">Health</a>
+        <a href="/docs">API docs</a>
+        <a href="/api/healthz">Health</a>
     </nav>
     <h1>{% block heading %}Claim Detection{% endblock %}</h1>
     {% block content %}{% endblock %}

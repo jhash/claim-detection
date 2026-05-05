@@ -5,6 +5,12 @@
 <p>Server is running in {% if queue %}<strong>queued</strong>{% else %}<strong>sync</strong>{% endif %} mode.
 Enter to submit, Shift+Enter for a newline. Submit as many as you want — predictions stream into the table below.</p>
 
+<details>
+    <summary>Or call the API from your shell</summary>
+    <pre><code>{{ curl_example }}</code></pre>
+    <p class="hint">Full API reference: <a href="/docs">/docs</a></p>
+</details>
+
 <form id="predict-form"
       hx-post="/ui/predict"
       hx-target="#results-tbody"

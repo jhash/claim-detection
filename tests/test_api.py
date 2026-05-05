@@ -6,7 +6,7 @@ import pytest
 
 
 def test_healthz(client):
-    r = client.get("/healthz")
+    r = client.get("/api/healthz")
     assert r.status_code == 200
     body = r.json()
     assert body["status"] == "ok"
@@ -14,7 +14,7 @@ def test_healthz(client):
 
 
 def test_predict_returns_claim_for_factual_sentence(client):
-    r = client.post("/predict", json={"text": "Inflation hit 9.1% in June 2022."})
+    r = client.post("/api/predict", json={"text": "Inflation hit 9.1% in June 2022."})
     assert r.status_code == 200
     body = r.json()
     assert body["is_claim"] is True
@@ -23,7 +23,7 @@ def test_predict_returns_claim_for_factual_sentence(client):
 
 
 def test_predict_returns_not_claim_for_opinion(client):
-    r = client.post("/predict", json={"text": "I love this weather"})
+    r = client.post("/api/predict", json={"text": "I love this weather"})
     assert r.status_code == 200
     body = r.json()
     assert body["is_claim"] is False
@@ -31,17 +31,17 @@ def test_predict_returns_not_claim_for_opinion(client):
 
 
 def test_predict_rejects_empty_text(client):
-    r = client.post("/predict", json={"text": ""})
+    r = client.post("/api/predict", json={"text": ""})
     assert r.status_code == 422  # pydantic min_length=1
 
 
 def test_predict_rejects_missing_field(client):
-    r = client.post("/predict", json={})
+    r = client.post("/api/predict", json={})
     assert r.status_code == 422
 
 
 def test_predict_response_shape(client):
-    r = client.post("/predict", json={"text": "The report cited 3 sources."})
+    r = client.post("/api/predict", json={"text": "The report cited 3 sources."})
     body = r.json()
     assert set(body.keys()) == {"is_claim", "confidence", "label"}
     assert isinstance(body["is_claim"], bool)

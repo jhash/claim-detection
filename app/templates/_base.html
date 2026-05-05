@@ -65,6 +65,15 @@
     </nav>
     <h1>{% block heading %}Claim Detection{% endblock %}</h1>
     {% block content %}{% endblock %}
-    <footer>Fine-tuned Ettin-150m on Bell-paper composite.</footer>
+    <footer>
+      <p style="margin: 0 0 0.4rem;">Fine-tuned
+        <a href="https://huggingface.co/jhu-clsp/ettin-encoder-150m" target="_blank" rel="noopener">Ettin-150m</a>
+        on the Bell-paper composite.</p>
+      <p style="margin: 0; font-size: 0.95em;">
+        <sup>1</sup> Bell, R. (2025). <em>Less Can Be More: Comparing LLMs to Smaller Encoder-Only Models for Claim Detection.</em>
+        Proceedings of the Eighth FEVER Workshop, ACL 2025.
+        <a href="https://aclanthology.org/2025.fever-1.6/" target="_blank" rel="noopener">aclanthology.org/2025.fever-1.6</a>.
+      </p>
+    </footer>
 </body>
 </html>

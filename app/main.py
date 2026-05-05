@@ -336,37 +336,73 @@ def favicon() -> RedirectResponse:
     return RedirectResponse(url="/static/favicon.ico", status_code=301)
 
 
+UI_MAX_BATCH = int(os.environ.get("UI_MAX_BATCH", "1000"))
+
+
+def _split_lines(raw: str) -> list[str]:
+    """Split textarea input on newlines, drop blank/whitespace-only lines.
+    Used by /ui/predict to support pasting many sentences at once."""
+    return [ln.strip() for ln in raw.splitlines() if ln.strip()]
+
+
 @app.post("/ui/predict", response_class=HTMLResponse)
 def ui_predict(request: Request, text: str = Form("")):
-    """Returns a single <tr> HTML fragment to be appended to the results
-    table on the index page. The fragment is self-contained — it includes
-    its own SSE connection (queued mode) or its already-resolved result
-    (sync mode)."""
-    text = text.strip()
-    if not text:
+    """Returns one or more <tr> HTML fragments to be prepended to the
+    results table. Supports multi-line paste: each non-blank line is
+    enqueued as its own job. Capped at UI_MAX_BATCH (default 1000)
+    lines per submit so a runaway paste can't DoS the worker.
+
+    The placeholder-row OOB delete fragment is appended once at the
+    end of the response — htmx removes the placeholder after the
+    first batch lands; subsequent batches' OOB swaps no-op."""
+    lines = _split_lines(text)
+
+    if not lines:
         return templates.TemplateResponse(
             request, "_row_error.html",
             {"error": "Please enter a sentence."},
             status_code=400,
         )
+    if len(lines) > UI_MAX_BATCH:
+        return templates.TemplateResponse(
+            request, "_row_error.html",
+            {"error": f"Up to {UI_MAX_BATCH:,} sentences per submit, got {len(lines):,}."},
+            status_code=400,
+        )
+
+    rows_html: list[str] = []
+
     if USE_QUEUE:
         from app.queue import enqueue_predict
 
-        job = enqueue_predict(text)
-        return templates.TemplateResponse(
-            request, "_row_streaming.html",
-            {"job_id": job.id, "text": text},
-        )
-    try:
-        result = get_predictor().predict(text)
-    except FileNotFoundError as e:
-        return templates.TemplateResponse(
-            request, "_row_error.html", {"error": str(e)}, status_code=503
-        )
-    return templates.TemplateResponse(
-        request, "_row_sync.html",
-        {"text": text, "result": result.to_dict()},
-    )
+        for line in lines:
+            job = enqueue_predict(line)
+            rows_html.append(
+                templates.get_template("_row_streaming.html").render(
+                    request=request, job_id=job.id, text=line
+                )
+            )
+    else:
+        try:
+            predictor = get_predictor()
+        except FileNotFoundError as e:
+            return templates.TemplateResponse(
+                request, "_row_error.html", {"error": str(e)}, status_code=503
+            )
+        for line in lines:
+            result = predictor.predict(line)
+            rows_html.append(
+                templates.get_template("_row_sync.html").render(
+                    request=request, text=line, result=result.to_dict()
+                )
+            )
+
+    # OOB delete of the placeholder row — emit once at the end so it's
+    # idempotent across single and batch submits. The streaming row
+    # template also includes one, so this is belt-and-suspenders.
+    rows_html.append('<tr id="placeholder-row" hx-swap-oob="delete"></tr>')
+
+    return HTMLResponse("\n".join(rows_html))
 
 
 @app.get("/results", response_class=HTMLResponse)

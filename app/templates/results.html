@@ -30,7 +30,7 @@ Each row's metrics are computed against the test split that matches its
     {% for r in ours_sorted %}
     <tr>
       <td>{{ loop.index }}</td>
-      <td><code>{{ r.slug }}</code></td>
+      <td><a href="{{ r.hf_url }}" target="_blank" rel="noopener" title="{{ r.hf_id }} on Hugging Face"><code>{{ r.slug }}</code> ↗</a></td>
       <td>{{ 'fine-tuned' if r.finetune else 'frozen probe' }}</td>
       <td><code>{{ r.corpus }}</code></td>
       <td class="num">
@@ -73,7 +73,7 @@ Each row's metrics are computed against the test split that matches its
       <td><code>{{ r.slug }}</code></td>
       <td>{{ 'fine-tuned' if r.finetune else 'frozen probe' }}</td>
       <td><code>{{ r.corpus }}</code></td>
-      <td class="pending"><code>{{ r.hf_id }}</code></td>
+      <td class="pending"><a href="{{ r.hf_url }}" target="_blank" rel="noopener"><code>{{ r.hf_id }}</code> ↗</a></td>
     </tr>
     {% endfor %}
   </tbody>
@@ -182,7 +182,7 @@ Each row's metrics are computed against the test split that matches its
     {% for r in section.rows %}
     <tr>
       <td>{{ loop.index }}</td>
-      <td><code>{{ r.slug }}</code></td>
+      <td><a href="{{ r.hf_url }}" target="_blank" rel="noopener" title="{{ r.hf_id }}"><code>{{ r.slug }}</code> ↗</a></td>
       <td>{{ 'fine-tuned' if r.finetune else 'frozen probe' }}</td>
       <td class="num">
         {% if r.accuracy_best %}<strong>{{ '%.4f'|format(r.accuracy) }}</strong

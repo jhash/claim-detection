@@ -32,21 +32,25 @@ def build_view() -> dict:
     def _corpus(spec):
         return (spec.data_dir or "datasets/verita-composite/ours").replace("datasets/", "")
 
+    def _hf_url(hf_id: str) -> str:
+        return f"https://huggingface.co/{hf_id}"
+
     rows = []
     for spec in MODELS:
         fp = RESULTS_DIR / f"{spec.slug}.json"
+        base = {
+            "slug": spec.slug,
+            "hf_id": spec.hf_id,
+            "hf_url": _hf_url(spec.hf_id),
+            "finetune": spec.finetune,
+            "corpus": _corpus(spec),
+        }
         if not fp.exists():
-            rows.append({
-                "slug": spec.slug, "hf_id": spec.hf_id, "finetune": spec.finetune,
-                "corpus": _corpus(spec), "pending": True,
-            })
+            rows.append({**base, "pending": True})
             continue
         d = json.loads(fp.read_text())
         rows.append({
-            "slug": spec.slug,
-            "hf_id": spec.hf_id,
-            "finetune": spec.finetune,
-            "corpus": _corpus(spec),
+            **base,
             "accuracy": d.get("accuracy"),
             "precision": d.get("precision"),
             "recall": d.get("recall"),
@@ -110,6 +114,8 @@ def build_view() -> dict:
                 in_f1 = in_f1_by_slug.get(spec.slug)
                 ood_by_dataset.setdefault(ds, []).append({
                     "slug": spec.slug,
+                    "hf_id": spec.hf_id,
+                    "hf_url": _hf_url(spec.hf_id),
                     "finetune": spec.finetune,
                     "n": payload.get("n"),
                     "accuracy": payload["accuracy"],

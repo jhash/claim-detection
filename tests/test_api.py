@@ -113,6 +113,102 @@ def test_ui_predict_blank_returns_error_row(client):
     assert "status-failed" in r.text
 
 
+# ---------------------------------------------------------------------------
+# Multi-line paste — the textarea accepts up to UI_MAX_BATCH (1000) lines,
+# each becomes a separate prediction row.
+# ---------------------------------------------------------------------------
+
+
+def test_ui_predict_multi_line_returns_one_row_per_sentence(client):
+    """Three newline-separated sentences → three <tr> fragments + the
+    OOB placeholder-delete trailer."""
+    text = "Inflation hit 9.1%.\nI love this weather.\nThe budget passed."
+    r = client.post("/ui/predict", data={"text": text})
+    assert r.status_code == 200
+    body = r.text
+    # Each sentence appears in its own row (sentence cell text).
+    assert "Inflation hit 9.1%." in body
+    assert "I love this weather." in body
+    assert "The budget passed." in body
+    # 3 result rows + 1 OOB placeholder-delete row = 4 <tr> opens.
+    assert body.count("<tr") == 4
+    # Placeholder OOB present.
+    assert 'id="placeholder-row"' in body
+    assert 'hx-swap-oob="delete"' in body
+
+
+def test_ui_predict_strips_blank_lines(client):
+    """Blank and whitespace-only lines between sentences are dropped."""
+    text = "First claim.\n\n   \nSecond claim.\n\n"
+    r = client.post("/ui/predict", data={"text": text})
+    assert r.status_code == 200
+    body = r.text
+    assert "First claim." in body
+    assert "Second claim." in body
+    # 2 result rows + 1 OOB → 3 <tr>.
+    assert body.count("<tr") == 3
+
+
+def test_ui_predict_single_line_still_returns_one_row(client):
+    """Backwards-compat — a single sentence shouldn't behave differently."""
+    r = client.post("/ui/predict", data={"text": "Just one sentence."})
+    assert r.status_code == 200
+    # 1 result row + 1 OOB.
+    assert r.text.count("<tr") == 2
+
+
+def test_ui_predict_batch_cap_rejects_too_many(client, monkeypatch):
+    """Over the cap → 400 with a clear error in the row."""
+    from app import main as app_main
+
+    # Lower the cap to keep the test fast and assertions tight.
+    monkeypatch.setattr(app_main, "UI_MAX_BATCH", 5)
+    text = "\n".join(f"sentence {i}" for i in range(6))
+    r = client.post("/ui/predict", data={"text": text})
+    assert r.status_code == 400
+    assert "Up to 5" in r.text
+    assert "got 6" in r.text
+
+
+def test_ui_predict_batch_cap_accepts_exact(client, monkeypatch):
+    """Exactly UI_MAX_BATCH lines → 200, all rows present."""
+    from app import main as app_main
+
+    monkeypatch.setattr(app_main, "UI_MAX_BATCH", 5)
+    text = "\n".join(f"sentence {i}" for i in range(5))
+    r = client.post("/ui/predict", data={"text": text})
+    assert r.status_code == 200
+    # 5 result rows + 1 OOB.
+    assert r.text.count("<tr") == 6
+
+
+def test_ui_predict_default_cap_is_1000(client):
+    """Sanity check the documented cap is 1000 by default."""
+    from app import main as app_main
+    assert app_main.UI_MAX_BATCH == 1000
+
+
+def test_split_lines_helper():
+    """The line-splitter strips blanks and whitespace-only lines."""
+    from app.main import _split_lines
+
+    assert _split_lines("") == []
+    assert _split_lines("   \n\n  ") == []
+    assert _split_lines("a") == ["a"]
+    assert _split_lines("a\nb") == ["a", "b"]
+    assert _split_lines("a\n\nb\n  \nc") == ["a", "b", "c"]
+    # Trailing/leading whitespace per line is trimmed.
+    assert _split_lines("  a  \n  b\t\n") == ["a", "b"]
+
+
+def test_index_page_mentions_paste_support(client):
+    """The helper text on the index page tells users about multi-line paste."""
+    r = client.get("/")
+    body = r.text
+    assert "paste" in body.lower()
+    assert "1,000" in body or "1000" in body
+
+
 def test_index_page_has_streaming_table(client):
     """Form posts append to a tbody; tbody starts with a placeholder row."""
     r = client.get("/")

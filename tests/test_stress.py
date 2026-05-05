@@ -217,6 +217,56 @@ def test_api_survives_concurrent_burst():
     )
 
 
+def test_ui_paste_1000_lines_in_one_request():
+    """Paste 1000 newline-separated sentences in a single POST to
+    /ui/predict. The whole request must finish in bounded time and
+    return one <tr> per sentence, even though that's a queue-storm
+    happening server-side."""
+    if not _live_check():
+        pytest.skip(f"API not reachable at {API_URL}")
+
+    n = 1000
+    big_text = "\n".join(TEXTS[i % len(TEXTS)] + f" ({i})" for i in range(n))
+
+    t0 = time.perf_counter()
+    with httpx.Client(timeout=60.0) as c:
+        r = c.post(f"{APP_URL}/ui/predict", data={"text": big_text})
+    elapsed = time.perf_counter() - t0
+
+    assert r.status_code == 200, f"got {r.status_code}: {r.text[:200]}"
+
+    # Count returned <tr> rows: n result rows + 1 OOB placeholder-delete.
+    tr_count = r.text.count("<tr")
+    print()
+    print(f"  /ui/predict paste of {n:,} lines:")
+    print(f"    request wall time : {elapsed:.2f}s")
+    print(f"    response size     : {len(r.text):,} bytes")
+    print(f"    <tr> opens        : {tr_count}")
+
+    assert tr_count == n + 1, f"expected {n+1} <tr>, got {tr_count}"
+
+    # Bound: enqueueing 1K shouldn't take more than 30 seconds.
+    # Real measured timings on M4 Air with 4 workers are ~3-5s.
+    assert elapsed <= 30, f"1K-paste took {elapsed:.1f}s (expected ≤ 30s)"
+
+    # Healthz must still be alive immediately after.
+    h = httpx.get(f"{API_URL}/healthz", timeout=2.0)
+    assert h.status_code == 200
+
+
+def test_ui_paste_1001_lines_rejected():
+    """Boundary: one over the cap → 400 with a single error row."""
+    if not _live_check():
+        pytest.skip(f"API not reachable at {API_URL}")
+
+    big_text = "\n".join(f"line {i}" for i in range(1001))
+    r = httpx.post(f"{APP_URL}/ui/predict", data={"text": big_text}, timeout=10.0)
+    assert r.status_code == 400
+    assert "1,000" in r.text or "1000" in r.text
+    # Exactly one error row in the response (not 1001).
+    assert r.text.count("<tr") == 1
+
+
 def test_healthz_decoupled_from_queue():
     """Even with a non-empty queue, healthz must respond in <100ms.
     This is the stronger version of the previous test: the api process

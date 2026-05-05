@@ -11,4 +11,6 @@
         </span>
     </td>
 </tr>
-<tr id="placeholder-row" hx-swap-oob="delete"></tr>
+{# Placeholder OOB-delete is appended once at the response level by
+   app/main.py:ui_predict — keeping it out of this template avoids a
+   double <tr> count when the response contains many rows. #}

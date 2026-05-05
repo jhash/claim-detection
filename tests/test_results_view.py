@@ -110,3 +110,19 @@ def test_build_view_marks_bell_column_bests():
     assert len(f1_bests) == 1
     # Bell's BERT row has the highest F1 (0.916).
     assert f1_bests[0]["label"].startswith("BERT")
+
+
+def test_build_view_attaches_huggingface_url_to_each_row(tmp_path, monkeypatch):
+    """Both ours_sorted and pending rows carry an `hf_url` so the
+    template can link the model slug to its Hugging Face page."""
+    monkeypatch.setattr("app.results_view.RESULTS_DIR", tmp_path)
+    (tmp_path / "ettin-150m-ft.json").write_text(json.dumps({
+        "slug": "ettin-150m-ft", "accuracy": 0.92, "precision": 0.92, "recall": 0.91, "f1": 0.917,
+    }))
+    view = build_view()
+    # The completed row gets a URL.
+    finished = [r for r in view["ours_sorted"] if r["slug"] == "ettin-150m-ft"][0]
+    assert finished["hf_url"] == "https://huggingface.co/jhu-clsp/ettin-encoder-150m"
+    # And every pending row does too.
+    for p in view["pending"]:
+        assert p["hf_url"].startswith("https://huggingface.co/")

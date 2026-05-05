@@ -157,6 +157,49 @@ def test_health_link_not_in_nav(monkeypatch):
     assert 'href="/api/healthz">' not in body
 
 
+def test_index_heading_is_claim_detection(monkeypatch):
+    """The h1 reads 'Claim detection' (not the old 'Type a sentence')."""
+    mod = _reload_with_env(monkeypatch, APP_URL=None, API_URL=None)
+    with TestClient(mod.app) as c:
+        r = c.get("/")
+    body = r.text
+    assert "<h1>Claim detection</h1>" in body
+    assert "Type a sentence" not in body  # old heading is gone
+
+
+def test_index_links_to_huggingface_model(monkeypatch):
+    """The intro paragraph links the headline model to its Hugging Face page."""
+    mod = _reload_with_env(monkeypatch, APP_URL=None, API_URL=None)
+    with TestClient(mod.app) as c:
+        r = c.get("/")
+    body = r.text
+    assert "https://huggingface.co/jhu-clsp/ettin-encoder-150m" in body
+    # outbound link styling
+    assert 'target="_blank"' in body and 'rel="noopener"' in body
+
+
+def test_index_cites_bell_paper_with_link(monkeypatch):
+    """Bell (FEVER 2025) is cited like a real paper reference, with a link."""
+    mod = _reload_with_env(monkeypatch, APP_URL=None, API_URL=None)
+    with TestClient(mod.app) as c:
+        r = c.get("/")
+    body = r.text
+    assert "Bell" in body
+    # ACL Anthology canonical URL for the FEVER 2025 paper.
+    assert "https://aclanthology.org/2025.fever-1.6" in body
+
+
+def test_footer_carries_full_citation(monkeypatch):
+    """The footer has the full Bell citation in journal-style format."""
+    mod = _reload_with_env(monkeypatch, APP_URL=None, API_URL=None)
+    with TestClient(mod.app) as c:
+        r = c.get("/")
+    body = r.text
+    assert "Less Can Be More" in body
+    assert "FEVER" in body
+    assert "ACL 2025" in body or "2025" in body
+
+
 def test_index_page_explains_what_it_does(monkeypatch):
     """The 'Try it' page tells the user what they're trying. The
     'Server is running in queued mode' line is gone."""
@@ -165,7 +208,8 @@ def test_index_page_explains_what_it_does(monkeypatch):
         r = c.get("/")
     body = r.text
     assert "claim detection" in body.lower()
-    assert "fact-checker" in body  # the explainer paragraph
+    # Intro mentions the actual subject of the page.
+    assert "check-worthy" in body or "factual claim" in body
     # The phrase we removed:
     assert "Server is running in" not in body
 

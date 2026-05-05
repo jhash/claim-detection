@@ -1,15 +1,17 @@
 {% extends "_base.html" %}
 {% block title %}Claim Detection — Try it{% endblock %}
-{% block heading %}Type a sentence{% endblock %}
+{% block heading %}Claim detection{% endblock %}
 {% block content %}
-<p>This page runs <strong>sentence-level claim detection</strong> — type any
-sentence and the model will tell you whether it makes a check-worthy
-factual claim (something a fact-checker could verify), with a confidence
-score. The headline model is a fine-tuned <code>jhu-clsp/ettin-encoder-150m</code>;
-see <a href="/results">/results</a> for how it stacks up against the other
-encoders in the Bell (FEVER 2025) paper.</p>
+<p>Adapting the encoder baselines from
+<a href="https://aclanthology.org/2025.fever-1.6/" target="_blank" rel="noopener">Bell (2025)</a><sup>1</sup>
+to a more recent open encoder
+(<a href="https://huggingface.co/jhu-clsp/ettin-encoder-150m" target="_blank" rel="noopener"><code>jhu-clsp/ettin-encoder-150m</code></a>).
+Enter a sentence and get back whether it contains a check-worthy factual claim,
+with a confidence score. Compare results vs. the paper at
+<a href="/results">/results</a>.</p>
 <p style="color: #6b7280">Enter to submit, Shift+Enter for a newline. Submit
-as many as you want — predictions stream into the table below.</p>
+as many as you want — predictions stream into the table below.
+<strong>Tip:</strong> paste up to 1,000 newline-separated sentences to score them all in one go.</p>
 
 <details>
     <summary>Or call the API from your shell</summary>

@@ -42,7 +42,7 @@ def test_predict_sync_real_claim():
         pytest.skip("API not reachable")
     r = httpx.post(
         f"{API_URL}/predict/sync",
-        json={"text": "The 9/11 Commission report said America is safer but not yet safe."},
+        json={"text": "SpaceX caught a Super Heavy booster mid-air on the first try."},
         timeout=30.0,
     )
     assert r.status_code == 200

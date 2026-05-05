@@ -42,7 +42,7 @@ def test_predict_sync_real_claim():
         pytest.skip("API not reachable")
     r = httpx.post(
         f"{API_URL}/predict/sync",
-        json={"text": "SpaceX caught a Super Heavy booster mid-air on the first try."},
+        json={"text": "Octopuses can edit their own RNA in real time to adapt to cold water."},
         timeout=30.0,
     )
     assert r.status_code == 200

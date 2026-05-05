@@ -23,7 +23,7 @@ as many as you want — predictions stream into the table below.</p>
       hx-swap="afterbegin"
       hx-on::after-request="document.querySelector('#predict-form textarea').value = ''; document.querySelector('#predict-form textarea').focus();">
     <textarea name="text" rows="2" autofocus
-              placeholder="e.g. SpaceX caught a Super Heavy booster mid-air on the first try."
+              placeholder="e.g. Octopuses can edit their own RNA in real time to adapt to cold water."
               onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();this.form.requestSubmit();}"></textarea>
     <p><button type="submit">Predict (Enter)</button>
        <span class="hint">submit-on-enter, shift+enter for newline</span></p>

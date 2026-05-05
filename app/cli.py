@@ -1,7 +1,7 @@
 """CLI for one-off predictions against a local checkpoint.
 
 Usage:
-    python -m app.cli predict "SpaceX caught a Super Heavy booster mid-air on the first try."
+    python -m app.cli predict "Octopuses can edit their own RNA in real time to adapt to cold water."
     python -m app.cli predict --json "Some sentence"
     echo "Some sentence" | python -m app.cli predict -
 """

@@ -29,7 +29,13 @@ class ModelSpec:
 
 
 MODELS: list[ModelSpec] = [
-    # --- Primary: our chosen upgrade over Bell's BERT baseline ---
+    # ----- Run order rationale -----
+    # 1) Primary fine-tune (Ettin) — our headline number, run first.
+    # 2) All frozen-probe baselines (cheap, ~12-15 min each) — quick comparison
+    #    points so we have something to look at while bigger trains run.
+    # 3) Bell-paper fine-tunes (BERT, ModernBERT, RoBERTa) — slowest, last.
+    # ---------------------------------
+
     ModelSpec(
         slug="ettin-150m-ft",
         hf_id="jhu-clsp/ettin-encoder-150m",
@@ -42,25 +48,11 @@ MODELS: list[ModelSpec] = [
         finetune=False,
         note="Pretrained baseline (frozen encoder + linear probe).",
     ),
-
-    # --- Bell-paper encoders (in the same order as the paper's table) ---
-    ModelSpec(
-        slug="bert-base-ft",
-        hf_id="google-bert/bert-base-uncased",
-        finetune=True,
-        note="Bell row: BERT (Finetuned). Reference baseline.",
-    ),
     ModelSpec(
         slug="bert-base-pretrained",
         hf_id="google-bert/bert-base-uncased",
         finetune=False,
         note="Bell row: BERT (pretrained / frozen).",
-    ),
-    ModelSpec(
-        slug="modernbert-base-ft",
-        hf_id="answerdotai/ModernBERT-base",
-        finetune=True,
-        note="Bell row: ModernBERT (Finetuned).",
     ),
     ModelSpec(
         slug="modernbert-base-pretrained",
@@ -69,16 +61,28 @@ MODELS: list[ModelSpec] = [
         note="Bell row: ModernBERT (pretrained / frozen).",
     ),
     ModelSpec(
-        slug="roberta-base-ft",
-        hf_id="FacebookAI/roberta-base",
-        finetune=True,
-        note="Bell row: RoBERTa / AFaCTA (Finetuned).",
-    ),
-    ModelSpec(
         slug="roberta-base-pretrained",
         hf_id="FacebookAI/roberta-base",
         finetune=False,
         note="Bell row: RoBERTa / AFaCTA (pretrained / frozen).",
+    ),
+    ModelSpec(
+        slug="bert-base-ft",
+        hf_id="google-bert/bert-base-uncased",
+        finetune=True,
+        note="Bell row: BERT (Finetuned). Reference baseline.",
+    ),
+    ModelSpec(
+        slug="modernbert-base-ft",
+        hf_id="answerdotai/ModernBERT-base",
+        finetune=True,
+        note="Bell row: ModernBERT (Finetuned).",
+    ),
+    ModelSpec(
+        slug="roberta-base-ft",
+        hf_id="FacebookAI/roberta-base",
+        finetune=True,
+        note="Bell row: RoBERTa / AFaCTA (Finetuned).",
     ),
 
     # --- Same-family alternatives, left disabled by default ---

@@ -1,0 +1,12 @@
+{
+  "slug": "roberta-base-ft",
+  "hf_id": "FacebookAI/roberta-base",
+  "finetune": true,
+  "device": "mps",
+  "n_test": 2600,
+  "elapsed_sec": 47.0,
+  "accuracy": 0.9188,
+  "precision": 0.9034,
+  "recall": 0.925,
+  "f1": 0.9141
+}

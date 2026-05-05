@@ -1,0 +1,12 @@
+{
+  "slug": "modernbert-base-ft",
+  "hf_id": "answerdotai/ModernBERT-base",
+  "finetune": true,
+  "device": "mps",
+  "n_test": 2600,
+  "elapsed_sec": 89.7,
+  "accuracy": 0.9219,
+  "precision": 0.9201,
+  "recall": 0.9118,
+  "f1": 0.9159
+}

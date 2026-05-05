@@ -111,6 +111,42 @@ def test_api_docs_redirects_to_docs(monkeypatch):
     assert r.headers["location"] == "/docs"
 
 
+def test_favicon_redirects_to_static(monkeypatch):
+    """Browsers request /favicon.ico by convention; we 301 to the
+    /static/favicon.ico that StaticFiles serves."""
+    mod = _reload_with_env(monkeypatch, APP_URL=None, API_URL=None)
+    with TestClient(mod.app) as c:
+        r = c.get("/favicon.ico", follow_redirects=False)
+    assert r.status_code == 301
+    assert r.headers["location"].endswith("/static/favicon.ico")
+
+
+def test_base_template_includes_favicon_links(monkeypatch):
+    """The <link rel="icon"> tags exist so browsers don't fall back to
+    the default."""
+    mod = _reload_with_env(monkeypatch, APP_URL=None, API_URL=None)
+    with TestClient(mod.app) as c:
+        r = c.get("/")
+    body = r.text
+    assert 'rel="icon"' in body
+    assert "favicon.svg" in body
+    assert "favicon.ico" in body
+    assert "apple-touch-icon" in body
+
+
+def test_index_page_explains_what_it_does(monkeypatch):
+    """The 'Try it' page tells the user what they're trying. The
+    'Server is running in queued mode' line is gone."""
+    mod = _reload_with_env(monkeypatch, APP_URL=None, API_URL=None)
+    with TestClient(mod.app) as c:
+        r = c.get("/")
+    body = r.text
+    assert "claim detection" in body.lower()
+    assert "fact-checker" in body  # the explainer paragraph
+    # The phrase we removed:
+    assert "Server is running in" not in body
+
+
 def test_openapi_schema_includes_sync_endpoint(monkeypatch):
     mod = _reload_with_env(monkeypatch, APP_URL=None, API_URL=None)
     with TestClient(mod.app) as c:

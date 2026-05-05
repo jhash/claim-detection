@@ -329,6 +329,13 @@ def api_docs_redirect() -> RedirectResponse:
     return RedirectResponse(url="/docs")
 
 
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon() -> RedirectResponse:
+    """Browsers request /favicon.ico by convention even when there's a
+    <link> tag. Redirect to the static path."""
+    return RedirectResponse(url="/static/favicon.ico", status_code=301)
+
+
 @app.post("/ui/predict", response_class=HTMLResponse)
 def ui_predict(request: Request, text: str = Form("")):
     """Returns a single <tr> HTML fragment to be appended to the results

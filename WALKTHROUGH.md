@@ -144,14 +144,41 @@ we mirror that.
 Short answer: **no, not on the same sentences**. Yes, on the same source
 distribution. Both are the right answer in different ways.
 
+### Which datasets actually flow into training
+
+Only one: `datasets/verita-composite/ours/{train,test}.csv`. Every model
+in the registry is fine-tuned on exactly that train file (10,425
+sentences) and evaluated on exactly that test file (2,607 sentences).
+You can verify it from the code — `src/pipeline.py` opens
+`DATA_DIR / "train.csv"` and `DATA_DIR / "test.csv"` where `DATA_DIR =
+ROOT / "datasets/verita-composite/ours"`. None of the other datasets
+in `datasets/` (Claimify, FEVERFact, CheckThat 2025) get touched
+during training.
+
+So why are they in the repo? Two reasons:
+
+1. **OOD evaluation**: Claimify (LLM-generated text) and CheckThat 2022
+   (tweets — already inside `verita-composite/CheckThat/`) are read by
+   `src/evaluate_ood.py` to test whether the trained models generalize
+   to text from very different distributions. Those numbers land in
+   `RESULTS.md`'s "Out-of-domain" section.
+2. **Future training-mix candidates**: If we wanted to broaden the
+   training distribution beyond political-debate sentences (a deferred
+   item in `README.md`), these datasets are pre-normalized to
+   `text,label,source` and ready to concatenate. They aren't in the
+   training mix today.
+
 ### The split
 
-The Verita repo ships a frozen 80/20 holdout:
+The Verita repo ships a frozen 80/20 holdout — pre-split, no shuffling
+on our side:
 
 - `datasets/verita-composite/ours/train.csv` — 10,425 sentences. We
   fine-tune on this.
 - `datasets/verita-composite/ours/test.csv` — 2,607 sentences. We
   *only* see this at evaluation time.
+
+10,425 / (10,425 + 2,607) ≈ 80.0% — so it's a literal 80/20.
 
 The model never sees a single test sentence during training. We
 verified this directly by hashing every sentence in both files —

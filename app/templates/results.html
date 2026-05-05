@@ -1,112 +1,215 @@
-{% extends "_base.html" %}
-{% block title %}Claim Detection — Results{% endblock %}
-{% block heading %}Comparison results{% endblock %}
-{% block content %}
-<p style="color:#6b7280">Auto-refreshes every 30s while the sweep is running. See <code>RESULTS.md</code> for the canonical version.</p>
-<meta http-equiv="refresh" content="30">
+{% extends "_base.html" %} {% block title %}Claim Detection — Results{% endblock
+%} {% block heading %}Comparison results{% endblock %} {% block content %}
+<p style="color: #6b7280">
+  See <code>RESULTS.md</code> for the canonical version.
+</p>
+<meta http-equiv="refresh" content="30" />
 
-<h2>Our models ({{ ours_sorted|length }} evaluated{% if pending %}, {{ pending|length }} pending{% endif %})</h2>
+<h2>
+  Our models ({{ ours_sorted|length }} evaluated{% if pending %}, {{
+  pending|length }} pending{% endif %})
+</h2>
 {% if ours_sorted %}
-<p style="color:#6b7280">Bold marks the best value in each metric column.</p>
+<p style="color: #6b7280">Bold marks the best value in each metric column.</p>
 <table>
-    <thead><tr><th>#</th><th>Model</th><th>Mode</th><th class="num">Accuracy</th><th class="num">Precision</th><th class="num">Recall</th><th class="num">F1</th></tr></thead>
-    <tbody>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Model</th>
+      <th>Mode</th>
+      <th class="num">Accuracy</th>
+      <th class="num">Precision</th>
+      <th class="num">Recall</th>
+      <th class="num">F1</th>
+    </tr>
+  </thead>
+  <tbody>
     {% for r in ours_sorted %}
-        <tr>
-            <td>{{ loop.index }}</td>
-            <td><code>{{ r.slug }}</code></td>
-            <td>{{ 'fine-tuned' if r.finetune else 'frozen probe' }}</td>
-            <td class="num">{% if r.accuracy_best %}<strong>{{ '%.4f'|format(r.accuracy) }}</strong>{% else %}{{ '%.4f'|format(r.accuracy) }}{% endif %}</td>
-            <td class="num">{% if r.precision_best %}<strong>{{ '%.4f'|format(r.precision) }}</strong>{% else %}{{ '%.4f'|format(r.precision) }}{% endif %}</td>
-            <td class="num">{% if r.recall_best %}<strong>{{ '%.4f'|format(r.recall) }}</strong>{% else %}{{ '%.4f'|format(r.recall) }}{% endif %}</td>
-            <td class="num">{% if r.f1_best %}<strong>{{ '%.4f'|format(r.f1) }}</strong>{% else %}{{ '%.4f'|format(r.f1) }}{% endif %}</td>
-        </tr>
+    <tr>
+      <td>{{ loop.index }}</td>
+      <td><code>{{ r.slug }}</code></td>
+      <td>{{ 'fine-tuned' if r.finetune else 'frozen probe' }}</td>
+      <td class="num">
+        {% if r.accuracy_best %}<strong>{{ '%.4f'|format(r.accuracy) }}</strong
+        >{% else %}{{ '%.4f'|format(r.accuracy) }}{% endif %}
+      </td>
+      <td class="num">
+        {% if r.precision_best %}<strong
+          >{{ '%.4f'|format(r.precision) }}</strong
+        >{% else %}{{ '%.4f'|format(r.precision) }}{% endif %}
+      </td>
+      <td class="num">
+        {% if r.recall_best %}<strong>{{ '%.4f'|format(r.recall) }}</strong>{%
+        else %}{{ '%.4f'|format(r.recall) }}{% endif %}
+      </td>
+      <td class="num">
+        {% if r.f1_best %}<strong>{{ '%.4f'|format(r.f1) }}</strong>{% else %}{{
+        '%.4f'|format(r.f1) }}{% endif %}
+      </td>
+    </tr>
     {% endfor %}
-    </tbody>
+  </tbody>
 </table>
 {% else %}
 <p>No results yet — run <code>python -m src.evaluate</code>.</p>
-{% endif %}
-
-{% if pending %}
+{% endif %} {% if pending %}
 <h2>Pending (training in progress or not started)</h2>
 <table>
-    <thead><tr><th>Model</th><th>Mode</th><th>HF id</th></tr></thead>
-    <tbody>
+  <thead>
+    <tr>
+      <th>Model</th>
+      <th>Mode</th>
+      <th>HF id</th>
+    </tr>
+  </thead>
+  <tbody>
     {% for r in pending %}
-        <tr><td><code>{{ r.slug }}</code></td><td>{{ 'fine-tuned' if r.finetune else 'frozen probe' }}</td><td class="pending"><code>{{ r.hf_id }}</code></td></tr>
+    <tr>
+      <td><code>{{ r.slug }}</code></td>
+      <td>{{ 'fine-tuned' if r.finetune else 'frozen probe' }}</td>
+      <td class="pending"><code>{{ r.hf_id }}</code></td>
+    </tr>
     {% endfor %}
-    </tbody>
+  </tbody>
 </table>
 {% endif %}
 
 <h2>Bell (FEVER 2025) reference</h2>
 <table>
-    <thead><tr><th>Bell row</th><th class="num">Accuracy</th><th class="num">Precision</th><th class="num">Recall</th><th class="num">F1</th></tr></thead>
-    <tbody>
+  <thead>
+    <tr>
+      <th>Bell row</th>
+      <th class="num">Accuracy</th>
+      <th class="num">Precision</th>
+      <th class="num">Recall</th>
+      <th class="num">F1</th>
+    </tr>
+  </thead>
+  <tbody>
     {% for b in bell %}
-        <tr>
-            <td>{{ b.label }}</td>
-            <td class="num">{% if b.accuracy is none %}—{% elif b.accuracy_best %}<strong>{{ '%.4f'|format(b.accuracy) }}</strong>{% else %}{{ '%.4f'|format(b.accuracy) }}{% endif %}</td>
-            <td class="num">{% if b.precision is none %}—{% elif b.precision_best %}<strong>{{ '%.4f'|format(b.precision) }}</strong>{% else %}{{ '%.4f'|format(b.precision) }}{% endif %}</td>
-            <td class="num">{% if b.recall is none %}—{% elif b.recall_best %}<strong>{{ '%.4f'|format(b.recall) }}</strong>{% else %}{{ '%.4f'|format(b.recall) }}{% endif %}</td>
-            <td class="num">{% if b.f1 is none %}—{% elif b.f1_best %}<strong>{{ '%.4f'|format(b.f1) }}</strong>{% else %}{{ '%.4f'|format(b.f1) }}{% endif %}</td>
-        </tr>
+    <tr>
+      <td>{{ b.label }}</td>
+      <td class="num">
+        {% if b.accuracy is none %}—{% elif b.accuracy_best %}<strong
+          >{{ '%.4f'|format(b.accuracy) }}</strong
+        >{% else %}{{ '%.4f'|format(b.accuracy) }}{% endif %}
+      </td>
+      <td class="num">
+        {% if b.precision is none %}—{% elif b.precision_best %}<strong
+          >{{ '%.4f'|format(b.precision) }}</strong
+        >{% else %}{{ '%.4f'|format(b.precision) }}{% endif %}
+      </td>
+      <td class="num">
+        {% if b.recall is none %}—{% elif b.recall_best %}<strong
+          >{{ '%.4f'|format(b.recall) }}</strong
+        >{% else %}{{ '%.4f'|format(b.recall) }}{% endif %}
+      </td>
+      <td class="num">
+        {% if b.f1 is none %}—{% elif b.f1_best %}<strong
+          >{{ '%.4f'|format(b.f1) }}</strong
+        >{% else %}{{ '%.4f'|format(b.f1) }}{% endif %}
+      </td>
+    </tr>
     {% endfor %}
-    </tbody>
+  </tbody>
 </table>
 
 <h2>Side-by-side: ours vs. Bell</h2>
 <table>
-    <thead><tr><th>Bell row</th><th class="num">Bell F1</th><th>Our model</th><th class="num">Our F1</th><th class="num">Δ F1</th></tr></thead>
-    <tbody>
+  <thead>
+    <tr>
+      <th>Bell row</th>
+      <th class="num">Bell F1</th>
+      <th>Our model</th>
+      <th class="num">Our F1</th>
+      <th class="num">Δ F1</th>
+    </tr>
+  </thead>
+  <tbody>
     {% for s in sxs %}
-        <tr>
-            <td>{{ s.bell_label }}</td>
-            <td class="num">{{ '%.4f'|format(s.bell_f1) }}</td>
-            <td><code>{{ s.slug }}</code></td>
-            <td class="num">{% if s.our_f1 is not none %}{{ '%.4f'|format(s.our_f1) }}{% else %}—{% endif %}</td>
-            <td class="num {% if s.delta is not none and s.delta >= 0 %}pos{% elif s.delta is not none %}neg{% endif %}">
-                {% if s.delta is not none %}{{ '+' if s.delta >= 0 else '' }}{{ '%.4f'|format(s.delta) }}{% else %}—{% endif %}
-            </td>
-        </tr>
+    <tr>
+      <td>{{ s.bell_label }}</td>
+      <td class="num">{{ '%.4f'|format(s.bell_f1) }}</td>
+      <td><code>{{ s.slug }}</code></td>
+      <td class="num">
+        {% if s.our_f1 is not none %}{{ '%.4f'|format(s.our_f1) }}{% else %}—{%
+        endif %}
+      </td>
+      <td
+        class="num {% if s.delta is not none and s.delta >= 0 %}pos{% elif s.delta is not none %}neg{% endif %}"
+      >
+        {% if s.delta is not none %}{{ '+' if s.delta >= 0 else '' }}{{
+        '%.4f'|format(s.delta) }}{% else %}—{% endif %}
+      </td>
+    </tr>
     {% endfor %}
-    </tbody>
+  </tbody>
 </table>
 
 {% if ood_sections %}
 <h2>Out-of-domain</h2>
-<p style="color:#6b7280">Sentence sets from totally different distributions
-than the training data. A model that's truly learned "claim-likeness" — vs.
-just memorizing political-debate patterns — should hold up here. The
-"Δ" column quantifies how much each model loses when moved off-distribution.</p>
+<p style="color: #6b7280">
+  Sentence sets from totally different distributions than the training data. A
+  model that's truly learned "claim-likeness" — vs. just memorizing
+  political-debate patterns — should hold up here. The "Δ" column quantifies how
+  much each model loses when moved off-distribution.
+</p>
 
 {% for section in ood_sections %}
 <h3><code>{{ section.name }}</code></h3>
 <p>{{ section.description|safe }}</p>
 <table>
-    <thead><tr><th>#</th><th>Model</th><th>Mode</th><th class="num">OOD Acc</th><th class="num">OOD P</th><th class="num">OOD R</th><th class="num">OOD F1</th><th class="num">In-domain F1</th><th class="num">Δ</th></tr></thead>
-    <tbody>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Model</th>
+      <th>Mode</th>
+      <th class="num">OOD Acc</th>
+      <th class="num">OOD P</th>
+      <th class="num">OOD R</th>
+      <th class="num">OOD F1</th>
+      <th class="num">In-domain F1</th>
+      <th class="num">Δ</th>
+    </tr>
+  </thead>
+  <tbody>
     {% for r in section.rows %}
-        <tr>
-            <td>{{ loop.index }}</td>
-            <td><code>{{ r.slug }}</code></td>
-            <td>{{ 'fine-tuned' if r.finetune else 'frozen probe' }}</td>
-            <td class="num">{% if r.accuracy_best %}<strong>{{ '%.4f'|format(r.accuracy) }}</strong>{% else %}{{ '%.4f'|format(r.accuracy) }}{% endif %}</td>
-            <td class="num">{% if r.precision_best %}<strong>{{ '%.4f'|format(r.precision) }}</strong>{% else %}{{ '%.4f'|format(r.precision) }}{% endif %}</td>
-            <td class="num">{% if r.recall_best %}<strong>{{ '%.4f'|format(r.recall) }}</strong>{% else %}{{ '%.4f'|format(r.recall) }}{% endif %}</td>
-            <td class="num">{% if r.f1_best %}<strong>{{ '%.4f'|format(r.f1) }}</strong>{% else %}{{ '%.4f'|format(r.f1) }}{% endif %}</td>
-            <td class="num">{% if r.in_f1 is not none %}{{ '%.4f'|format(r.in_f1) }}{% else %}—{% endif %}</td>
-            <td class="num {% if r.delta is not none and r.delta >= 0 %}pos{% elif r.delta is not none %}neg{% endif %}">
-                {% if r.delta is none %}—{% else %}
-                    {% if r.delta_best %}<strong>{{ '+' if r.delta >= 0 else '' }}{{ '%.4f'|format(r.delta) }}</strong>
-                    {% else %}{{ '+' if r.delta >= 0 else '' }}{{ '%.4f'|format(r.delta) }}{% endif %}
-                {% endif %}
-            </td>
-        </tr>
+    <tr>
+      <td>{{ loop.index }}</td>
+      <td><code>{{ r.slug }}</code></td>
+      <td>{{ 'fine-tuned' if r.finetune else 'frozen probe' }}</td>
+      <td class="num">
+        {% if r.accuracy_best %}<strong>{{ '%.4f'|format(r.accuracy) }}</strong
+        >{% else %}{{ '%.4f'|format(r.accuracy) }}{% endif %}
+      </td>
+      <td class="num">
+        {% if r.precision_best %}<strong
+          >{{ '%.4f'|format(r.precision) }}</strong
+        >{% else %}{{ '%.4f'|format(r.precision) }}{% endif %}
+      </td>
+      <td class="num">
+        {% if r.recall_best %}<strong>{{ '%.4f'|format(r.recall) }}</strong>{%
+        else %}{{ '%.4f'|format(r.recall) }}{% endif %}
+      </td>
+      <td class="num">
+        {% if r.f1_best %}<strong>{{ '%.4f'|format(r.f1) }}</strong>{% else %}{{
+        '%.4f'|format(r.f1) }}{% endif %}
+      </td>
+      <td class="num">
+        {% if r.in_f1 is not none %}{{ '%.4f'|format(r.in_f1) }}{% else %}—{%
+        endif %}
+      </td>
+      <td
+        class="num {% if r.delta is not none and r.delta >= 0 %}pos{% elif r.delta is not none %}neg{% endif %}"
+      >
+        {% if r.delta is none %}—{% else %} {% if r.delta_best %}<strong
+          >{{ '+' if r.delta >= 0 else '' }}{{ '%.4f'|format(r.delta) }}</strong
+        >
+        {% else %}{{ '+' if r.delta >= 0 else '' }}{{ '%.4f'|format(r.delta)
+        }}{% endif %} {% endif %}
+      </td>
+    </tr>
     {% endfor %}
-    </tbody>
+  </tbody>
 </table>
-{% endfor %}
-{% endif %}
-{% endblock %}
+{% endfor %} {% endif %} {% endblock %}

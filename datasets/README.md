@@ -44,6 +44,24 @@ the binary schema — see `claimify/`, `feverfact/`, and
 `checkthat-2025/task2-claim-normalization/` READMEs for what's preserved
 in raw form.
 
+### What flows into training (and what doesn't)
+
+**Only `verita-composite/ours/`** feeds the fine-tuning pipeline —
+`train.csv` (10,425 rows) for training, `test.csv` (2,607 rows) for
+the in-domain test. That's a frozen 80/20 split shipped pre-divided
+by Verita; we don't shuffle or re-split. See `src/pipeline.py:DATA_DIR`.
+
+The other folders here (`checkthat-2025/`, `claimify/`, `feverfact/`)
+are **not** in the training mix today. They serve two purposes:
+
+- **Out-of-domain evaluation** — Claimify (LLM-generated text) and
+  CT22 (tweets, inside `verita-composite/CheckThat/`) are read by
+  `src/evaluate_ood.py` to test transfer outside the political-debate
+  distribution.
+- **Future training-mix candidates** — pre-normalized to
+  `text,label,source` so they can be concatenated into the training
+  set later if we broaden the distribution.
+
 ---
 
 ## `verita-composite/`

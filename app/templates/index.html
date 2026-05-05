@@ -2,8 +2,14 @@
 {% block title %}Claim Detection — Try it{% endblock %}
 {% block heading %}Type a sentence{% endblock %}
 {% block content %}
-<p>Server is running in {% if queue %}<strong>queued</strong>{% else %}<strong>sync</strong>{% endif %} mode.
-Enter to submit, Shift+Enter for a newline. Submit as many as you want — predictions stream into the table below.</p>
+<p>This page runs <strong>sentence-level claim detection</strong> — type any
+sentence and the model will tell you whether it makes a check-worthy
+factual claim (something a fact-checker could verify), with a confidence
+score. The headline model is a fine-tuned <code>jhu-clsp/ettin-encoder-150m</code>;
+see <a href="/results">/results</a> for how it stacks up against the other
+encoders in the Bell (FEVER 2025) paper.</p>
+<p style="color: #6b7280">Enter to submit, Shift+Enter for a newline. Submit
+as many as you want — predictions stream into the table below.</p>
 
 <details>
     <summary>Or call the API from your shell</summary>

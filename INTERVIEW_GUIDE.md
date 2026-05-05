@@ -218,6 +218,114 @@ where Bell's exact split isn't published.
 
 ---
 
+## The metrics, ELI5
+
+When the model classifies sentences, every prediction lands in one of four
+buckets:
+
+|  | Predicted "claim" | Predicted "not a claim" |
+|---|---|---|
+| **Actually a claim** | True Positive (TP) — got it right | False Negative (FN) — missed it |
+| **Actually not a claim** | False Positive (FP) — yelled "claim" at nothing | True Negative (TN) — correctly stayed quiet |
+
+The four metrics in our table are different angles on those four counts.
+
+### Accuracy — "what fraction did we get right?"
+
+```
+   TP + TN
+─────────────────
+TP + TN + FP + FN
+```
+
+The most intuitive metric and the most misleading. If 95% of sentences
+are not-claims, a model that always says "not a claim" gets 95% accuracy
+while being completely useless. Accuracy lies when the classes are
+imbalanced.
+
+### Precision — "when we shout 'claim,' how often are we right?"
+
+```
+   TP
+────────
+TP + FP
+```
+
+High precision means **few false alarms**. A precision of 0.92 says: of
+every 100 sentences we flagged as claims, 92 actually were claims, 8
+were noise.
+
+### Recall — "of all the real claims, how many did we catch?"
+
+```
+   TP
+────────
+TP + FN
+```
+
+High recall means **few misses**. A recall of 0.91 says: of every 100
+real claims out there, we found 91 of them, missed 9.
+
+### Precision and recall trade off against each other
+
+Crank precision up → the model only flags very confident claims, but
+misses the borderline ones (recall drops). Crank recall up → the model
+flags everything that might be a claim, catching them all but with
+lots of false alarms (precision drops). You can almost always trade
+one for the other by adjusting the decision threshold.
+
+### F1 — the harmonic mean of precision and recall
+
+```
+        precision × recall
+F1 = 2 ─────────────────────
+        precision + recall
+```
+
+F1 is the **single number that punishes you for being lopsided**. If
+precision is 1.0 (perfect) but recall is 0.1 (terrible), arithmetic
+mean would say 0.55 — sounds OK. Harmonic mean (F1) says **0.18** —
+correctly flagging that this model is broken in one direction.
+
+### Why F1 is the key metric for this task
+
+Three reasons:
+
+1. **The class balance is roughly 50/50** in the verita-composite test
+   set, so accuracy is honest here — but F1 is honest *no matter how
+   the future looks*. If we deploy this on real-world text where most
+   sentences aren't claims, accuracy will explode upward without our
+   model getting any better. F1 won't.
+2. **False positives and false negatives are both costly.** If the API
+   labels random sentences as claims (low precision), downstream fact-
+   checkers waste time. If it misses real claims (low recall),
+   misinformation slips through. We don't have a good reason to weight
+   one over the other, so the harmonic mean is the right summary.
+3. **Bell uses F1 as the primary metric** in the FEVER 2025 paper, and
+   the whole takehome is positioned against that reference. Comparing
+   on F1 is the only way to make defensible head-to-head claims.
+
+So when we say *"Ettin-150m-ft scored F1 0.9167 vs Bell's best encoder
+at 0.9160,"* we're saying: across both kinds of error, on a balanced
+test set, our model is fractionally better-balanced than the best
+encoder Bell tested.
+
+### What the API's `confidence` is, separately
+
+The `confidence` field returned from `/predict` is **softmax probability
+of the predicted class**, not F1 or accuracy. It's the model's own
+self-rated certainty for *one* prediction, on a 0–1 scale. A confidence
+of 0.93 means the model assigned 93% probability to the predicted label.
+
+Worth a caveat: raw softmax probabilities aren't perfectly calibrated.
+A confidence of 0.93 doesn't literally mean "9.3 of 10 such predictions
+will be right" — modern transformers tend to be slightly over-confident.
+**Calibration (e.g. temperature scaling) is in the deferred list** in
+the README; if it ships, the `confidence` field becomes meaningfully
+calibrated rather than just monotonic.
+
+---
+
 ## Likely interview questions and answers
 
 **Q: Why didn't you try an LLM?**

@@ -91,6 +91,23 @@ Live version at `RESULTS.md`. Final 8-model sweep, sorted by F1:
 | Llama-3.2-1B-Instruct (Finetuned) | 0.8720 | — | — | 0.8640 |
 | Factcheck-GPT (zero-shot) | 0.7310 | — | — | 0.7080 |
 
+### What these numbers mean (briefly)
+
+- **Accuracy** — fraction of all predictions that are correct. Easy to
+  read, but lies when the classes aren't balanced.
+- **Precision** — when the model says "claim," how often it's right.
+  High precision = few false alarms.
+- **Recall** — of all the real claims, how many the model catches.
+  High recall = few misses.
+- **F1** — harmonic mean of precision and recall. Punishes lopsided
+  models (perfect precision but bad recall scores a low F1, even
+  though the average would look fine).
+
+**F1 is the key metric here** because (1) we want both fewer false
+alarms *and* fewer misses, with no good reason to prefer one, and (2)
+it's the metric Bell uses, so it's the only way to compare head-to-head
+with the paper. `INTERVIEW_GUIDE.md` has the full ELI5 with examples.
+
 ### Direct head-to-head with Bell (sanity check on our pipeline)
 
 | Bell row | Bell F1 | Our F1 | Δ |

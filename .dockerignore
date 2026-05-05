@@ -1,0 +1,13 @@
+.git
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+.mypy_cache
+runs
+!runs/ettin-150m-ft/final
+datasets
+papers
+*.log
+.DS_Store

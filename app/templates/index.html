@@ -1,0 +1,11 @@
+{% extends "_base.html" %}
+{% block title %}Claim Detection — Try it{% endblock %}
+{% block heading %}Type a sentence{% endblock %}
+{% block content %}
+<p>Server is running in {% if queue %}<strong>queued</strong>{% else %}<strong>sync</strong>{% endif %} mode.</p>
+<form hx-post="/ui/predict" hx-target="#result" hx-swap="innerHTML" hx-disabled-elt="button">
+    <textarea name="text" rows="3" placeholder="e.g. The 9/11 Commission report said America is safer but not yet safe."></textarea>
+    <p><button type="submit">Predict</button></p>
+</form>
+<div id="result"></div>
+{% endblock %}

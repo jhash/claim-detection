@@ -1,0 +1,12 @@
+{
+  "slug": "bert-base-pretrained",
+  "hf_id": "google-bert/bert-base-uncased",
+  "finetune": false,
+  "device": "mps",
+  "n_test": 2600,
+  "elapsed_sec": 31.1,
+  "accuracy": 0.8596,
+  "precision": 0.882,
+  "recall": 0.8071,
+  "f1": 0.8429
+}

@@ -1,0 +1,12 @@
+{
+  "slug": "ettin-150m-ft",
+  "hf_id": "jhu-clsp/ettin-encoder-150m",
+  "finetune": true,
+  "device": "mps",
+  "n_test": 2600,
+  "elapsed_sec": 55.2,
+  "accuracy": 0.9223,
+  "precision": 0.9174,
+  "recall": 0.9159,
+  "f1": 0.9167
+}

@@ -1,0 +1,50 @@
+# Local + Swarm-compatible compose. Stick to v3 syntax that works with both
+# `docker compose up` (local) and `docker stack deploy` (Swarm).
+
+services:
+  api:
+    image: claim-detection:latest
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    environment:
+      MODEL_PATH: /model
+      QUEUE: "1"
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./runs/ettin-150m-ft/final:/model:ro
+    ports:
+      - "8000:8000"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  worker:
+    image: claim-detection:latest
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: ["rq", "worker", "claim", "--url", "redis://redis:6379/0"]
+    environment:
+      MODEL_PATH: /model
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./runs/ettin-150m-ft/final:/model:ro
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure

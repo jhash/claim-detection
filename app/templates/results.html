@@ -1,0 +1,75 @@
+{% extends "_base.html" %}
+{% block title %}Claim Detection — Results{% endblock %}
+{% block heading %}Comparison results{% endblock %}
+{% block content %}
+<p style="color:#6b7280">Auto-refreshes every 30s while the sweep is running. See <code>RESULTS.md</code> for the canonical version.</p>
+<meta http-equiv="refresh" content="30">
+
+<h2>Our models ({{ ours_sorted|length }} evaluated{% if pending %}, {{ pending|length }} pending{% endif %})</h2>
+{% if ours_sorted %}
+<table>
+    <thead><tr><th>#</th><th>Model</th><th>Mode</th><th class="num">Accuracy</th><th class="num">Precision</th><th class="num">Recall</th><th class="num">F1</th></tr></thead>
+    <tbody>
+    {% for r in ours_sorted %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td><code>{{ r.slug }}</code></td>
+            <td>{{ 'fine-tuned' if r.finetune else 'frozen probe' }}</td>
+            <td class="num">{{ '%.4f'|format(r.accuracy) }}</td>
+            <td class="num">{{ '%.4f'|format(r.precision) }}</td>
+            <td class="num">{{ '%.4f'|format(r.recall) }}</td>
+            <td class="num"><strong>{{ '%.4f'|format(r.f1) }}</strong></td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No results yet — run <code>python -m src.evaluate</code>.</p>
+{% endif %}
+
+{% if pending %}
+<h2>Pending (training in progress or not started)</h2>
+<table>
+    <thead><tr><th>Model</th><th>Mode</th><th>HF id</th></tr></thead>
+    <tbody>
+    {% for r in pending %}
+        <tr><td><code>{{ r.slug }}</code></td><td>{{ 'fine-tuned' if r.finetune else 'frozen probe' }}</td><td class="pending"><code>{{ r.hf_id }}</code></td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+<h2>Bell (FEVER 2025) reference</h2>
+<table>
+    <thead><tr><th>Bell row</th><th class="num">Accuracy</th><th class="num">Precision</th><th class="num">Recall</th><th class="num">F1</th></tr></thead>
+    <tbody>
+    {% for b in bell %}
+        <tr>
+            <td>{{ b.label }}</td>
+            <td class="num">{{ '%.4f'|format(b.accuracy) if b.accuracy else '—' }}</td>
+            <td class="num">{{ '%.4f'|format(b.precision) if b.precision else '—' }}</td>
+            <td class="num">{{ '%.4f'|format(b.recall) if b.recall else '—' }}</td>
+            <td class="num">{{ '%.4f'|format(b.f1) if b.f1 else '—' }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<h2>Side-by-side: ours vs. Bell</h2>
+<table>
+    <thead><tr><th>Bell row</th><th class="num">Bell F1</th><th>Our model</th><th class="num">Our F1</th><th class="num">Δ F1</th></tr></thead>
+    <tbody>
+    {% for s in sxs %}
+        <tr>
+            <td>{{ s.bell_label }}</td>
+            <td class="num">{{ '%.4f'|format(s.bell_f1) }}</td>
+            <td><code>{{ s.slug }}</code></td>
+            <td class="num">{% if s.our_f1 is not none %}{{ '%.4f'|format(s.our_f1) }}{% else %}—{% endif %}</td>
+            <td class="num {% if s.delta is not none and s.delta >= 0 %}pos{% elif s.delta is not none %}neg{% endif %}">
+                {% if s.delta is not none %}{{ '+' if s.delta >= 0 else '' }}{{ '%.4f'|format(s.delta) }}{% else %}—{% endif %}
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

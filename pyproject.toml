@@ -1,0 +1,10 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "integration: tests that hit a live HTTP server (skipped unless -m integration)",
+]
+addopts = "-m 'not integration'"
+filterwarnings = [
+    "ignore::DeprecationWarning:transformers.*",
+    "ignore::UserWarning:torch.*",
+]

@@ -26,9 +26,15 @@ as many as you want — predictions stream into the table below.
       hx-on::after-request="document.querySelector('#predict-form textarea').value = ''; document.querySelector('#predict-form textarea').focus();">
     <textarea name="text" rows="2" autofocus
               placeholder="e.g. Octopuses can edit their own RNA in real time to adapt to cold water."
-              onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();this.form.requestSubmit();}"></textarea>
+              onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();this.form.requestSubmit();}"
+              onpaste="(function(ta, ev){
+                  var data = ev.clipboardData && ev.clipboardData.getData('text');
+                  if (data && /\r?\n/.test(data)) {
+                    setTimeout(function(){ ta.form.requestSubmit(); }, 0);
+                  }
+                })(this, event);"></textarea>
     <p><button type="submit">Predict (Enter)</button>
-       <span class="hint">submit-on-enter, shift+enter for newline</span></p>
+       <span class="hint">enter to submit, shift+enter for a newline, paste multi-line text to submit instantly</span></p>
 </form>
 
 <table id="results-table">

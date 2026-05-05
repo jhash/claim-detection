@@ -200,6 +200,26 @@ def test_footer_carries_full_citation(monkeypatch):
     assert "ACL 2025" in body or "2025" in body
 
 
+def test_index_auto_submits_on_multi_line_paste(monkeypatch):
+    """Pasting multi-line text triggers requestSubmit() automatically.
+    Single-line paste should NOT trigger submit (the user can keep
+    typing). The handler checks the clipboard data for newlines before
+    deciding."""
+    mod = _reload_with_env(monkeypatch, APP_URL=None, API_URL=None)
+    with TestClient(mod.app) as c:
+        r = c.get("/")
+    body = r.text
+    # The textarea has an onpaste handler.
+    assert "onpaste" in body
+    # It checks for newlines in the pasted clipboard data.
+    assert "clipboardData" in body
+    assert "\\r?\\n" in body or "/\\n/" in body or "/\r?\n/" in body
+    # On match it calls requestSubmit (after a tick so the paste settles).
+    assert "requestSubmit" in body
+    # Helper text mentions the paste behavior so users know.
+    assert "paste" in body.lower()
+
+
 def test_index_page_explains_what_it_does(monkeypatch):
     """The 'Try it' page tells the user what they're trying. The
     'Server is running in queued mode' line is gone."""

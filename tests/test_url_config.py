@@ -146,6 +146,17 @@ def test_nav_links_to_github(monkeypatch):
     assert 'rel="noopener"' in body
 
 
+def test_health_link_not_in_nav(monkeypatch):
+    """Healthz is for ops/monitoring, not human visitors. Don't surface it."""
+    mod = _reload_with_env(monkeypatch, APP_URL=None, API_URL=None)
+    with TestClient(mod.app) as c:
+        r = c.get("/")
+    body = r.text
+    # The endpoint still exists (other tests cover that). Just isn't a nav link.
+    assert '>Health<' not in body
+    assert 'href="/api/healthz">' not in body
+
+
 def test_index_page_explains_what_it_does(monkeypatch):
     """The 'Try it' page tells the user what they're trying. The
     'Server is running in queued mode' line is gone."""

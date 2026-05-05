@@ -2,8 +2,9 @@
 testpaths = ["tests"]
 markers = [
     "integration: tests that hit a live HTTP server (skipped unless -m integration)",
+    "stress: load tests that hammer a live HTTP server (skipped unless -m stress)",
 ]
-addopts = "-m 'not integration'"
+addopts = "-m 'not integration and not stress'"
 filterwarnings = [
     "ignore::DeprecationWarning:transformers.*",
     "ignore::UserWarning:torch.*",

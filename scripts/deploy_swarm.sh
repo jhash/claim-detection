@@ -132,17 +132,28 @@ TAG="$TAG" API_REPLICAS="$API_REPLICAS" WORKER_REPLICAS="$WORKER_REPLICAS" \
 echo "==> waiting for services to converge to $IMAGE (or auto-rollback)"
 deadline=$(( $(date +%s) + 300 ))   # 5 minutes hard cap
 while :; do
-  api_image=$(docker service inspect --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}' \
-    "${STACK}_api" 2>/dev/null | sed 's/@.*//')
-  worker_image=$(docker service inspect --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}' \
-    "${STACK}_worker" 2>/dev/null | sed 's/@.*//')
+  api_image=$(docker service inspect --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}'     "${STACK}_api" 2>/dev/null | sed 's/@.*//')
+  worker_image=$(docker service inspect --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}'     "${STACK}_worker" 2>/dev/null | sed 's/@.*//')
 
   api_state=$(docker service inspect --format '{{.UpdateStatus.State}}' "${STACK}_api" 2>/dev/null || echo "")
   worker_state=$(docker service inspect --format '{{.UpdateStatus.State}}' "${STACK}_worker" 2>/dev/null || echo "")
 
-  printf "    api=%s  worker=%s\n" "${api_state:-?}" "${worker_state:-?}"
+  api_replicas=$(docker service ls --filter "name=${STACK}_api" --format '{{.Replicas}}' | head -n1)
+  worker_replicas=$(docker service ls --filter "name=${STACK}_worker" --format '{{.Replicas}}' | head -n1)
 
-  if [ "$api_state" = "completed" ] && [ "$worker_state" = "completed" ]; then
+  api_ready=0
+  worker_ready=0
+
+  if [ "$api_image" = "$IMAGE" ] && [[ "$api_replicas" =~ ^([0-9]+)/\1$ ]] && { [ "$api_state" = "completed" ] || [ -z "$api_state" ]; }; then
+    api_ready=1
+  fi
+  if [ "$worker_image" = "$IMAGE" ] && [[ "$worker_replicas" =~ ^([0-9]+)/\1$ ]] && { [ "$worker_state" = "completed" ] || [ -z "$worker_state" ]; }; then
+    worker_ready=1
+  fi
+
+  printf "    api=%s (%s,%s)  worker=%s (%s,%s)\n"     "${api_state:-none}" "$api_image" "${api_replicas:-?}"     "${worker_state:-none}" "$worker_image" "${worker_replicas:-?}"
+
+  if [ "$api_ready" = "1" ] && [ "$worker_ready" = "1" ]; then
     echo "==> rolled successfully"
     break
   fi

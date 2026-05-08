@@ -10,13 +10,17 @@ Endpoints:
 
 from __future__ import annotations
 
-import json
 import os
 from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, FastAPI, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import (
+    HTMLResponse,
+    JSONResponse,
+    RedirectResponse,
+    StreamingResponse,
+)
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
@@ -35,7 +39,7 @@ EXAMPLE_TEXT = "Inflation hit 9.1% in June 2022."
 CURL_EXAMPLE = (
     f"curl -X POST {API_URL}/predict/sync "
     f"-H 'content-type: application/json' "
-    f"-d '{{\"text\": \"{EXAMPLE_TEXT}\"}}'"
+    f'-d \'{{"text": "{EXAMPLE_TEXT}"}}\''
 )
 
 app = FastAPI(
@@ -53,7 +57,9 @@ app = FastAPI(
     redoc_url="/redoc-raw",
 )
 
-templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent / "templates"))
+templates = Jinja2Templates(
+    directory=str(Path(__file__).resolve().parent / "templates")
+)
 static_dir = Path(__file__).resolve().parent / "static"
 if static_dir.exists():
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
@@ -85,14 +91,22 @@ class PredictRequest(BaseModel):
 
 
 class PredictResponse(BaseModel):
-    is_claim: bool = Field(..., description="True if the text contains a check-worthy factual claim.")
-    confidence: float = Field(..., description="Softmax probability of the predicted class. 0–1, higher is more confident.")
+    is_claim: bool = Field(
+        ..., description="True if the text contains a check-worthy factual claim."
+    )
+    confidence: float = Field(
+        ...,
+        description="Softmax probability of the predicted class. 0–1, higher is more confident.",
+    )
     label: str = Field(..., description="Either 'claim' or 'not_claim'.")
 
 
 class EnqueueResponse(BaseModel):
     job_id: str = Field(..., description="Unique job id for this prediction.")
-    stream_url: str = Field(..., description="Server-Sent-Events URL that streams `status` and final `result` events.")
+    stream_url: str = Field(
+        ...,
+        description="Server-Sent-Events URL that streams `status` and final `result` events.",
+    )
 
 
 # All public endpoints live under /api so the same domain can host the
@@ -234,9 +248,11 @@ async def predict_stream(job_id: str, request: Request) -> StreamingResponse:
             if _asyncio.get_event_loop().time() > deadline:
                 yield _sse_event(
                     "result",
-                    _render_result_html({"error": "timed out waiting for worker"}, "failed"),
+                    _render_result_html(
+                        {"error": "timed out waiting for worker"}, "failed"
+                    ),
                 )
-                return
+                # return
             await _asyncio.sleep(POLL_INTERVAL_SEC)
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
@@ -254,13 +270,22 @@ def _sse_event(event: str, data: str) -> str:
 
 
 def _render_status_html(status: str) -> str:
-    label = {"queued": "queued…", "started": "running…", "finished": "done", "failed": "error"}.get(status, status)
+    label = {
+        "queued": "queued…",
+        "started": "running…",
+        "finished": "done",
+        "failed": "error",
+    }.get(status, status)
     return f'<span class="status status-{status}">{label}</span>'
 
 
 def _render_result_html(payload, status: str) -> str:
     if status == "failed" or not isinstance(payload, dict) or "is_claim" not in payload:
-        msg = (payload or {}).get("error", "job failed") if isinstance(payload, dict) else "job failed"
+        msg = (
+            (payload or {}).get("error", "job failed")
+            if isinstance(payload, dict)
+            else "job failed"
+        )
         return f'<span class="result error">error: {msg}</span>'
     is_claim = bool(payload["is_claim"])
     conf = float(payload["confidence"])
@@ -288,16 +313,22 @@ def _install_legacy_redirects() -> None:
         ("/predict/sync", "/api/predict/sync", ["POST"]),
     ]
     for old, new, methods in legacy_paths:
+
         async def _redirect(request: Request, _new=new):
             target = _new + (("?" + request.url.query) if request.url.query else "")
             return RedirectResponse(url=target, status_code=308)
+
         app.add_api_route(old, _redirect, methods=methods, include_in_schema=False)
 
     # Job-id stream redirect needs the path param threaded through.
     async def _redirect_stream(job_id: str, request: Request):
         return RedirectResponse(url=f"/api/predict/{job_id}/stream", status_code=308)
+
     app.add_api_route(
-        "/predict/{job_id}/stream", _redirect_stream, methods=["GET"], include_in_schema=False
+        "/predict/{job_id}/stream",
+        _redirect_stream,
+        methods=["GET"],
+        include_in_schema=False,
     )
 
 
@@ -310,8 +341,14 @@ _install_legacy_redirects()
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(
-        request, "index.html",
-        {"queue": USE_QUEUE, "app_url": APP_URL, "api_url": API_URL, "curl_example": CURL_EXAMPLE},
+        request,
+        "index.html",
+        {
+            "queue": USE_QUEUE,
+            "app_url": APP_URL,
+            "api_url": API_URL,
+            "curl_example": CURL_EXAMPLE,
+        },
     )
 
 
@@ -359,14 +396,18 @@ def ui_predict(request: Request, text: str = Form("")):
 
     if not lines:
         return templates.TemplateResponse(
-            request, "_row_error.html",
+            request,
+            "_row_error.html",
             {"error": "Please enter a sentence."},
             status_code=400,
         )
     if len(lines) > UI_MAX_BATCH:
         return templates.TemplateResponse(
-            request, "_row_error.html",
-            {"error": f"Up to {UI_MAX_BATCH:,} sentences per submit, got {len(lines):,}."},
+            request,
+            "_row_error.html",
+            {
+                "error": f"Up to {UI_MAX_BATCH:,} sentences per submit, got {len(lines):,}."
+            },
             status_code=400,
         )
 

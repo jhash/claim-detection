@@ -1,8 +1,19 @@
-<tr hx-ext="sse" sse-connect="/api/predict/{{ job_id }}/stream" sse-close="result" data-job-id="{{ job_id }}">
-    <td><span sse-swap="status"><span class="status status-queued">queued…</span></span></td>
-    <td class="sentence">{{ text }}</td>
-    <td sse-swap="result"><span class="result pending"><span class="spinner"></span> waiting…</span></td>
+<tr
+  hx-ext="sse"
+  sse-connect="/api/predict/{{ job_id }}/stream"
+  sse-close="result"
+  data-job-id="{{ job_id }}"
+>
+  <td>
+    <span sse-swap="status"
+      ><span class="status status-queued">queued…</span></span
+    >
+  </td>
+  <td class="sentence">{{ text }}</td>
+  <td sse-swap="result">
+    <span class="result pending"><span class="spinner"></span> waiting…</span>
+  </td>
 </tr>
 {# Placeholder OOB-delete is appended once at the response level by
-   app/main.py:ui_predict. Subsequent enqueues hit a no-op (delete
-   against a missing element). #}
+app/main.py:ui_predict. Subsequent enqueues hit a no-op (delete against a
+missing element). #}

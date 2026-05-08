@@ -139,6 +139,128 @@ we mirror that.
 
 ---
 
+## Glossary: head, learning rate, freeze/unfreeze
+
+Three terms from the section above that are worth pinning down.
+
+### What's the "classification head" — and did we build it?
+
+A pretrained encoder like ModernBERT outputs a vector of numbers per
+token (a 768-dim "contextual embedding" for each word). It does not
+output a "claim / not-claim" decision. Something has to convert that
+vector into our two-class prediction. That something is the
+**classification head**: a small neural net stacked on top of the
+encoder. For BERT-family models it is roughly:
+
+```
+[encoder output for the [CLS] token]  → 768-d vector
+   → Dropout → Linear(768 → 2) → 2 logits (one per class)
+```
+
+For RoBERTa it adds a `Linear → tanh → Dropout → Linear` sandwich; the
+shape is the same. The exact architecture is provided by Hugging Face's
+`transformers` library — one `*ForSequenceClassification` class per
+model family (`BertForSequenceClassification`, `RobertaForSequenceClassification`,
+etc.). We don't write that class.
+
+What we wrote is the line that *instantiates* it:
+
+```python
+# src/pipeline.py
+model = AutoModelForSequenceClassification.from_pretrained(
+    spec.hf_id,
+    num_labels=2,
+    id2label={0: "not_claim", 1: "claim"},
+    label2id={"not_claim": 0, "claim": 1},
+)
+```
+
+When this runs, HF loads the pretrained encoder weights from disk and
+**creates a fresh classification head with random weights** (because
+the head shape — 2 output classes — does not match anything the model
+was originally pretrained on). Training is what gives that head its
+weights. So:
+
+- **Architecture of the head:** HF's library code. Standard, off-the-shelf.
+- **Weights of the head:** ours. They started random and were learned
+  on our claim / not-claim labels.
+- **In a frozen-probe run:** *only* the head's weights are ours; the
+  encoder is unchanged from HF.
+- **In a fine-tuned run:** both the head's weights and the encoder's
+  weights are ours after training.
+
+The string `"classifier"` shows up in our freeze logic
+(`if not name.startswith("classifier"): p.requires_grad = False`)
+because that's the conventional name of the head's parameters in HF
+models — a useful sentinel for "everything except the head."
+
+### What does "LR 5e-5" mean?
+
+`LR` is **learning rate**. `5e-5` is scientific notation for
+`0.00005`. It controls how big a step the optimizer takes each time it
+nudges a weight toward a better value during training.
+
+- **Too high** → weights bounce around chaotically, training diverges,
+  or the model "forgets" useful pretrained knowledge.
+- **Too low** → training is slow and may get stuck in a mediocre spot.
+
+`5e-5` is the de-facto standard for fine-tuning BERT-family encoders
+(it comes from the original BERT paper) — small enough to gently
+specialize the pretrained features without wrecking them.
+
+For our **frozen-probe** runs we use `1e-3` (`0.001`), 20× higher. The
+encoder is locked, so the only thing being trained is the small,
+randomly-initialized head — there's nothing fragile to protect, and a
+bigger step gets a small head to convergence faster. Both numbers live
+side-by-side in `src/pipeline.py`:
+
+```python
+learning_rate=5e-5 if spec.finetune else 1e-3,
+```
+
+### What does "freezing" or "unfreezing" parameters mean?
+
+Every learnable number inside the model — every weight in every layer
+— is a PyTorch tensor with a flag called `requires_grad`.
+
+- `requires_grad=True` (the default): during training, PyTorch computes
+  a gradient for this weight, and the optimizer updates it. The weight
+  changes.
+- `requires_grad=False` (**frozen**): no gradient is computed, and the
+  optimizer leaves it alone. The weight stays exactly as it was loaded
+  from disk.
+
+Our frozen-probe runs flip this flag on every parameter that isn't
+part of the head:
+
+```python
+# src/pipeline.py
+if not spec.finetune:
+    for name, p in model.named_parameters():
+        if not name.startswith("classifier"):
+            p.requires_grad = False
+```
+
+In numbers: a base ModernBERT encoder has ~150M parameters; the
+classification head has roughly 1,500 (`768 × 2 + 2`). Freezing means
+we are training **0.001%** of the model — a linear probe on top of a
+fixed feature extractor. Fine-tuning unfreezes everything and trains
+all 150M.
+
+Two upshots worth knowing:
+
+1. **Forward passes still go through the frozen encoder** — freezing
+   only stops gradient updates, not computation. That's why frozen-probe
+   training is faster but not free; you still pay for the encoder's
+   forward pass each batch.
+2. **The frozen-vs-finetuned gap is what tells you whether the
+   pretrained model already "got it"** for your task. A small gap means
+   the base model's representations were already great; a big gap means
+   task-specific specialization mattered. Bell's table reports both for
+   exactly this reason, and so do we.
+
+---
+
 ## "Wait — are we training and testing on the same data?"
 
 Short answer: **no, not on the same sentences**. Yes, on the same source

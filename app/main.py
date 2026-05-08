@@ -252,7 +252,8 @@ async def predict_stream(job_id: str, request: Request) -> StreamingResponse:
                         {"error": "timed out waiting for worker"}, "failed"
                     ),
                 )
-                # return
+                await _asyncio.sleep(0.5)
+                return
             await _asyncio.sleep(POLL_INTERVAL_SEC)
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
